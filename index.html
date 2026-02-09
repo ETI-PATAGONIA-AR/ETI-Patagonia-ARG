@@ -1,25 +1,75 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ETI Patagonia</title>
 
-  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
-    /* ===== BLOQUE CARRUSEL ===== */
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== SECCIÓN PRINCIPAL ===== */
+
+    .main-section {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    /* ===== IMAGEN FIJA IZQUIERDA ===== */
+
+    .left-fixed-img {
+      height: 320px;            /* MISMA ALTURA VISUAL QUE EL CARRUSEL */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .left-fixed-img img {
+      max-height: 100%;
+      max-width: 100%;
+      object-fit: contain;
+    }
+
+    /* ===== TITULO ===== */
+
+    .repos-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 1.1rem;
+    }
+
+    /* ===== CARRUSEL ===== */
+
+    .repo-carousel-wrapper {
+      position: relative;
+      width: 100%;
+    }
 
     .repo-carousel {
       display: flex;
       gap: 16px;
       overflow-x: auto;
-      padding: 10px;
+      padding: 10px 0;
+      scrollbar-width: none;
+    }
+
+    .repo-carousel::-webkit-scrollbar {
+      display: none;
     }
 
     .repo-card {
       min-width: 240px;
+      height: 320px;
       border: 2px solid #3f46ff;
       background: #fff;
       display: flex;
@@ -27,150 +77,145 @@
     }
 
     .repo-card h6 {
-      padding: 8px;
+      padding: 6px;
       margin: 0;
       background: #f2f2f2;
       font-weight: bold;
       text-align: center;
+      font-size: 0.9rem;
     }
 
     .repo-card img {
       width: 100%;
-      height: 140px;
+      height: 130px;
       object-fit: cover;
     }
 
     .repo-card .repo-body {
-      padding: 8px;
-      font-size: 0.85rem;
+      padding: 6px;
+      font-size: 0.8rem;
       flex-grow: 1;
+      overflow: hidden;
     }
 
     .repo-card a {
       text-align: center;
-      padding: 8px;
+      padding: 6px;
       background: #212529;
       color: #fff;
       text-decoration: none;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
-    .repo-card a:hover {
-      background: #000;
+    /* ===== FLECHAS ===== */
+
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #212529;
+      color: #fff;
+      border: none;
+      width: 34px;
+      height: 34px;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 10;
+      opacity: 0.85;
     }
 
-    .repo-carousel::-webkit-scrollbar {
-      height: 8px;
-    }
+    .carousel-btn.left { left: -16px; }
+    .carousel-btn.right { right: -16px; }
 
-    .repo-carousel::-webkit-scrollbar-thumb {
-      background: #3f46ff;
-      border-radius: 4px;
+    /* ===== LOGO INFERIOR ===== */
+
+    .bottom-logo img {
+      max-height: 180px;
+      width: auto;
     }
   </style>
 </head>
 
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <img src="img/logo2.png" alt="ETI Patagonia" height="40" class="me-2">
+
+    <img src="img/logo2.png" height="40" class="me-2">
+
     <a class="navbar-brand" href="#">ETI Patagonia</a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav">
-        <li class="nav-item">
-          <a class="nav-link active" href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--">
-            QuienesSomos
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR">
-            Repositorios
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/Contacto">
-            Contacto
-          </a>
-        </li>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="#quienes">Quiénes Somos</a></li>
+        <li class="nav-item"><a class="nav-link" href="#repos">Repositorios</a></li>
+        <li class="nav-item"><a class="nav-link" href="#contacto">Contacto</a></li>
       </ul>
     </div>
+
   </div>
 </nav>
 
-<!-- HEADER -->
-<header id="inicio" class="my-4">
-  <div class="container text-center">
-    <!-- lo dejamos como estaba -->
-  </div>
-</header>
+<section class="container main-section" id="repos">
 
-<!-- BLOQUE CENTRAL -->
-<section class="container my-5">
+  <div class="row align-items-center w-100">
 
-  <div class="row align-items-stretch">
-
-    <!-- IMAGEN IZQUIERDA FIJA -->
-    <div class="col-md-3 mb-3">
-      <img
-        src="img/ETI_Patagonia.png"
-        alt="ETI Patagonia"
-        class="img-fluid h-100"
-        style="object-fit: cover;"
-      >
+    <div class="col-md-3 left-fixed-img">
+      <img src="img/ETI_Patagonia.png" alt="ETI Patagonia">
     </div>
 
-    <!-- CARRUSEL DE REPOS -->
     <div class="col-md-9">
-      <div class="repo-carousel" id="repoCarousel">
-        <!-- JS inserta repos -->
+
+      <div class="repos-title">Últimos repositorios</div>
+
+      <div class="repo-carousel-wrapper">
+        <button class="carousel-btn left" onclick="scrollRepos(-1)">‹</button>
+
+        <div class="repo-carousel" id="repoCarousel"></div>
+
+        <button class="carousel-btn right" onclick="scrollRepos(1)">›</button>
       </div>
+
     </div>
 
   </div>
 
 </section>
 
-<!-- CONTENIDO INFERIOR -->
-<section class="container text-center my-5">
-  <img src="img/prof_martintorres.png" alt="Prof. Martin Torres" class="img-fluid">
+<section class="container text-center bottom-logo my-2">
+  <img src="img/prof_martintorres.png" class="img-fluid">
 </section>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JS GITHUB API -->
 <script>
 fetch("https://api.github.com/users/ETI-PATAGONIA-AR/repos")
-  .then(res => res.json())
+  .then(r => r.json())
   .then(repos => {
-    const container = document.getElementById("repoCarousel");
-
+    const c = document.getElementById("repoCarousel");
     repos
-      .filter(repo => !repo.fork)
-      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+      .filter(r => !r.fork)
+      .sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at))
       .forEach(repo => {
-        container.innerHTML += `
+        c.innerHTML += `
           <div class="repo-card">
             <h6>${repo.name}</h6>
-            <img src="https://opengraph.githubassets.com/1/${repo.full_name}" alt="${repo.name}">
-            <div class="repo-body">
-              ${repo.description ?? "Sin descripción"}
-            </div>
-            <a href="${repo.html_url}" target="_blank">
-              Seguir leyendo →
-            </a>
+            <img src="https://opengraph.githubassets.com/1/${repo.full_name}">
+            <div class="repo-body">${repo.description ?? "Sin descripción"}</div>
+            <a href="${repo.html_url}" target="_blank">Seguir leyendo →</a>
           </div>
         `;
       });
-  })
-  .catch(err => console.error("Error cargando repos:", err));
+  });
+
+function scrollRepos(dir) {
+  document.getElementById("repoCarousel")
+    .scrollBy({ left: dir * 300, behavior: "smooth" });
+}
 </script>
 
 </body>
