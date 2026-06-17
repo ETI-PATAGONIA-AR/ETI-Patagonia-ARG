@@ -3,192 +3,452 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ETI Patagonia</title>
+  <title>ETI Patagonia — Espacio de Tecnología e Innovación</title>
+  <meta name="description" content="ETI Patagonia — Espacio de Tecnolog a e Innovaci n. Proyectos, aplicaciones, Arduino, recursos docentes y m s.">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
   <style>
-    html, body {
-      height: 100%;
-    }
+    html { scroll-behavior: smooth; }
 
     body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f8f9fc;
+    }
+
+    /* ===== NAVBAR ===== */
+    .navbar-brand img { transition: transform .3s; }
+    .navbar-brand img:hover { transform: scale(1.08); }
+
+    /* ===== HERO (solo texto) ===== */
+    .hero {
+      background: linear-gradient(135deg, #0b1a33 0%, #1a2f4e 50%, #0d2137 100%);
+      padding: 2.8rem 0 2.2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      opacity: 0.5;
+    }
+
+    /* ===== SECCIÓN LOGO + ICONOS ===== */
+    .logo-icons-section {
+      padding: 3rem 0;
+      background: #f8f9fc;
+    }
+    .logo-grande {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .logo-grande img {
+      max-width: 100%;
+      max-height: 520px;
+      width: auto;
+      object-fit: contain;
+    }
+    .uplc-promo {
+      margin-top: 1.5rem;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.06);
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
-    }
-
-    /* ===== SECCIÓN PRINCIPAL ===== */
-
-    .main-section {
-      flex: 1;
-      display: flex;
       align-items: center;
+      text-align: center;
+      border: 1px solid rgba(0,0,0,.04);
+    }
+    .uplc-promo img {
+      width: 100%;
+      max-width: 280px;
+      margin-bottom: .8rem;
+    }
+    .uplc-promo h5 {
+      font-weight: 700;
+      color: #0b1a33;
+      margin-bottom: .6rem;
+    }
+    .uplc-promo p {
+      font-size: .82rem;
+      color: #5a6a7a;
+      line-height: 1.6;
+      margin-bottom: .6rem;
+    }
+    .uplc-promo .contacto {
+      font-weight: 600;
+      color: #0b1a33;
+      font-size: .82rem;
+    }
+    .uplc-promo .descuento {
+      font-size: .78rem;
+      color: #a73f3f;
+      font-weight: 600;
+      margin-top: .2rem;
+    }
+    @media (max-width: 991px) {
+      .logo-grande { margin-bottom: 1.5rem; }
+      .logo-grande img { max-height: 300px; }
     }
 
-    /* ===== IMAGEN FIJA IZQUIERDA ===== */
+    .icon-grid { }
 
-    .left-fixed-img {
-      height: 320px;            /* MISMA ALTURA VISUAL QUE EL CARRUSEL */
+    .icon-btn-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.06);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      transition: transform .25s, box-shadow .25s;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(0,0,0,.04);
+    }
+    .icon-btn-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 32px rgba(0,0,0,.12);
+    }
+
+    .icon-btn-card .icon-wrap {
+      width: 90px;
+      height: 90px;
       display: flex;
       align-items: center;
       justify-content: center;
+      border-radius: 50%;
+      background: #f0f4ff;
+      margin-bottom: 1rem;
+      transition: background .3s;
+    }
+    .icon-btn-card:hover .icon-wrap { background: #dbe5ff; }
+
+    .icon-btn-card .icon-wrap img {
+      max-width: 54px;
+      max-height: 54px;
     }
 
-    .left-fixed-img img {
-      max-height: 100%;
-      max-width: 100%;
-      object-fit: contain;
+    .icon-btn-card h5 {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #0b1a33;
+      margin-bottom: .4rem;
     }
 
-    /* ===== TITULO ===== */
+    .icon-btn-card p {
+      font-size: .85rem;
+      color: #5a6a7a;
+      line-height: 1.5;
+      margin-bottom: 1.2rem;
+    }
+
+    .icon-btn-card .btn-icon-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #0b1a33;
+      color: #fff;
+      border: none;
+      padding: .5rem 1.4rem;
+      border-radius: 40px;
+      font-size: .82rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background .25s, transform .2s;
+    }
+    .icon-btn-card .btn-icon-link:hover {
+      background: #1f3a5c;
+      transform: scale(1.04);
+    }
+
+    /* ===== SECCIÓN REPOS ===== */
+    .repos-section {
+      background: #fff;
+      padding: 3rem 0;
+    }
 
     .repos-title {
-      font-weight: 600;
-      margin-bottom: 6px;
-      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0b1a33;
+      margin-bottom: .3rem;
     }
 
-    /* ===== CARRUSEL ===== */
-
-    .repo-carousel-wrapper {
-      position: relative;
-      width: 100%;
-    }
+    .repo-carousel-wrapper { position: relative; }
 
     .repo-carousel {
       display: flex;
-      gap: 16px;
+      gap: 18px;
       overflow-x: auto;
-      padding: 10px 0;
+      padding: 12px 4px 16px;
       scrollbar-width: none;
+      scroll-behavior: smooth;
     }
-
-    .repo-carousel::-webkit-scrollbar {
-      display: none;
-    }
+    .repo-carousel::-webkit-scrollbar { display: none; }
 
     .repo-card {
-      min-width: 240px;
-      height: 320px;
-      border: 2px solid #3f46ff;
-      background: #fff;
+      min-width: 250px;
+      max-width: 250px;
+      border-radius: 14px;
+      border: 1px solid #e6edf4;
+      background: #fafcff;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      transition: box-shadow .25s;
     }
+    .repo-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.08); }
 
-    .repo-card h6 {
-      padding: 6px;
-      margin: 0;
-      background: #f2f2f2;
-      font-weight: bold;
-      text-align: center;
-      font-size: 0.9rem;
+    .repo-card .card-head {
+      background: #0b1a33;
+      color: #fff;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: .85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-
     .repo-card img {
       width: 100%;
       height: 130px;
       object-fit: cover;
     }
-
-    .repo-card .repo-body {
-      padding: 6px;
-      font-size: 0.8rem;
+    .repo-card .card-body {
+      padding: 10px 12px;
+      font-size: .8rem;
+      color: #3d4f62;
       flex-grow: 1;
-      overflow: hidden;
     }
-
-    .repo-card a {
-      text-align: center;
-      padding: 6px;
-      background: #212529;
-      color: #fff;
+    .repo-card .card-footer {
+      padding: 8px 12px;
+      border-top: 1px solid #e6edf4;
+      background: transparent;
+    }
+    .repo-card .card-footer a {
+      font-size: .8rem;
+      font-weight: 500;
+      color: #0b1a33;
       text-decoration: none;
-      font-size: 0.8rem;
     }
-
-    /* ===== FLECHAS ===== */
+    .repo-card .card-footer a:hover { text-decoration: underline; }
 
     .carousel-btn {
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      background: #212529;
-      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
       border: none;
-      width: 34px;
-      height: 34px;
-      font-size: 22px;
+      background: #0b1a33;
+      color: #fff;
+      font-size: 1.3rem;
       cursor: pointer;
       z-index: 10;
-      opacity: 0.85;
+      opacity: .8;
+      transition: opacity .2s, transform .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-
+    .carousel-btn:hover { opacity: 1; transform: translateY(-50%) scale(1.08); }
     .carousel-btn.left { left: -16px; }
     .carousel-btn.right { right: -16px; }
 
-    /* ===== LOGO INFERIOR ===== */
+    /* ===== FOOTER ===== */
+    footer {
+      background: #0b1a33;
+      color: rgba(255,255,255,.7);
+      padding: 2rem 0 1.2rem;
+      font-size: .85rem;
+    }
+    footer .footer-logo { max-height: 120px; }
+    footer a { color: #8ab4f8; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
 
-    .bottom-logo img {
-      max-height: 180px;
-      width: auto;
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .hero { padding: 2rem 0 1.5rem; }
+      .icon-btn-card { padding: 1.5rem 1rem; }
     }
   </style>
 </head>
 
 <body>
 
+<!-- ===== NAVBAR ===== -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-
-    <img src="img/logo2.png" height="40" class="me-2">
-
-    <a class="navbar-brand" href="#">ETI Patagonia</a>
-
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+      <img src="img/logo2.png" height="38" alt="ETI">
+      ETI Patagonia
+    </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
       <span class="navbar-toggler-icon"></span>
     </button>
-
     <div class="collapse navbar-collapse" id="mainNavbar">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--">Quiénes Somos</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR">Repositorios</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/Contacto">Contacto</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--"><i class="bi bi-info-circle me-1"></i>Quiénes Somos</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR"><i class="bi bi-github me-1"></i>Repositorios</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/Contacto"><i class="bi bi-envelope me-1"></i>Contacto</a></li>
       </ul>
     </div>
-
   </div>
 </nav>
 
-<section class="container main-section" id="repos">
+<!-- ===== HERO (solo texto) ===== -->
+<section class="hero text-white text-center">
+  <div class="container position-relative">
+    <h1 class="fw-bold fs-2 mb-1">Espacio de Tecnología e Innovación</h1>
+    <p class="fs-5 mb-0 opacity-75">Proyectos · Aplicaciones · Arduino · Recursos Docentes · uPLC</p>
+  </div>
+</section>
 
-  <div class="row align-items-center w-100">
+<!-- ===== LOGO GRANDE + ICONOS BOTONES ===== -->
+<section class="logo-icons-section">
+  <div class="container">
+    <div class="row align-items-start g-5">
 
-    <div class="col-md-3 left-fixed-img">
-      <img src="img/ETI_Patagonia.png" alt="ETI Patagonia">
-    </div>
+      <!-- Columna izquierda: logo grande + promo uPLC -->
+      <div class="col-lg-5">
+        <div class="logo-grande">
+          <img src="img/ETI_Patagonia.png" alt="ETI Patagonia">
+        </div>
+        <div class="uplc-promo">
+          <img src="img/e_book_uPLC.png" alt="uPLC">
+          <h5>¿Ya conociste uPLC?</h5>
+          <p>Si eres docente, estudiante, aficionado o profesional y quieres enseñar robótica educativa en el aula, programar tus Arduino en lenguaje visual de BLOQUES o lenguaje industrial de los PLC (LADDER), uPLC es lo que necesitas…</p>
+          <span class="contacto"><i class="bi bi-envelope me-1"></i>contacto: prof.martintorres@educ.ar</span>
+          <span class="descuento">— Descuentos especiales a Docentes, Escuelas e Instituciones Privadas —</span>
+          <div class="mt-3">
+            <iframe src="https://www.youtube.com/embed/qlkqkO9H0I4?feature=oembed" width="100%" height="240" style="border-radius:12px;display:block;border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen title="Presentacion uPLCv6 Blocks"></iframe>
+          </div>
+        </div>
+      </div>
 
-    <div class="col-md-9">
+      <!-- Columna derecha: iconos botones -->
+      <div class="col-lg-7">
+        <div class="row g-3">
 
-      <div class="repos-title">Últimos repositorios</div>
+          <!-- APLICACIONES -->
+          <div class="col-md-6">
+            <div class="icon-btn-card">
+              <div class="icon-wrap">
+                <img src="img/icono_aplicaciones.png" alt="Aplicaciones">
+              </div>
+              <h5>Aplicaciones</h5>
+              <p>Interfaces, asistentes y ejecutables. Software de escritorio y herramientas interactivas.</p>
+              <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Aaplicaciones&type=source&language=&sort=" class="btn-icon-link" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Explorar
+              </a>
+            </div>
+          </div>
 
-      <div class="repo-carousel-wrapper">
-        <button class="carousel-btn left" onclick="scrollRepos(-1)">‹</button>
+          <!-- PROYECTOS -->
+          <div class="col-md-6">
+            <div class="icon-btn-card">
+              <div class="icon-wrap">
+                <img src="img/icono_proyectos.png" alt="Proyectos">
+              </div>
+              <h5>Proyectos</h5>
+              <p>Software, IA y nanotecnología aplicada. Desarrollos e investigación técnica. Innovación abierta.</p>
+              <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Aproyectos&type=source&language=&sort=" class="btn-icon-link" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Explorar
+              </a>
+            </div>
+          </div>
 
-        <div class="repo-carousel" id="repoCarousel"></div>
+          <!-- ARDUINO -->
+          <div class="col-md-6">
+            <div class="icon-btn-card">
+              <div class="icon-wrap">
+                <img src="img/icono_arduino.png" alt="Arduino">
+              </div>
+              <h5>Arduino</h5>
+              <p>Firmware, automatización y esquemáticos. Microcontroladores y electrónica libre. Automatización.</p>
+              <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Aarduino&type=&language=&sort=" class="btn-icon-link" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Explorar
+              </a>
+            </div>
+          </div>
 
-        <button class="carousel-btn right" onclick="scrollRepos(1)">›</button>
+          <!-- DOCENTES -->
+          <div class="col-md-6">
+            <div class="icon-btn-card">
+              <div class="icon-wrap">
+                <img src="img/icono_docentes.png" alt="Docentes">
+              </div>
+              <h5>Docentes</h5>
+              <p>Recursos, herramientas y didáctica. Contenido para educación técnica. Guías y utilidades educativas.</p>
+              <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Adocentes&type=source&language=&sort=" class="btn-icon-link" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Explorar
+              </a>
+            </div>
+          </div>
+
+          <!-- uPLC -->
+          <div class="col-md-6">
+            <div class="icon-btn-card">
+              <div class="icon-wrap">
+                <img src="img/icono_uplc.png" alt="uPLC">
+              </div>
+              <h5>uPLC</h5>
+              <p>Conversor Ladder/Bloques a C++. Programación visual en Arduino. Automatización y control industrial.</p>
+              <a href="https://github.com/ETI-PATAGONIA-AR/uPLC" class="btn-icon-link" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Explorar
+              </a>
+            </div>
+          </div>
+
+        </div>
       </div>
 
     </div>
+  </div>
+</section>
+
+<!-- ===== REPOSITORIOS RECIENTES ===== -->
+<section class="repos-section" id="repos">
+  <div class="container">
+
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h2 class="repos-title fs-5 mb-0"><i class="bi bi-github me-2"></i>Repositorios recientes</h2>
+        <small class="text-muted">Proyectos activos en GitHub</small>
+      </div>
+      <a href="https://github.com/ETI-PATAGONIA-AR" class="btn btn-sm btn-outline-dark" target="_blank">
+        <i class="bi bi-github me-1"></i>Ver todos
+      </a>
+    </div>
+
+    <div class="repo-carousel-wrapper">
+      <button class="carousel-btn left" onclick="scrollRepos(-1)">‹</button>
+      <div class="repo-carousel" id="repoCarousel"></div>
+      <button class="carousel-btn right" onclick="scrollRepos(1)">›</button>
+    </div>
 
   </div>
-
 </section>
 
-<section class="container text-center bottom-logo my-2">
-  <img src="img/prof_martintorres.png" class="img-fluid">
-</section>
+<!-- ===== FOOTER ===== -->
+<footer class="text-center">
+  <div class="container">
+    <img src="img/prof_martintorres.png" alt="Prof. Martin Torres" class="footer-logo mb-2">
+    <p class="mb-1">
+      <a href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--">Quiénes Somos</a> ·
+      <a href="https://github.com/ETI-PATAGONIA-AR">Repositorios</a> ·
+      <a href="https://github.com/ETI-PATAGONIA-AR/Contacto">Contacto</a>
+    </p>
+    <p class="mb-0 small opacity-50">ETI Patagonia — Espacio de Tecnología e Innovación</p>
+  </div>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -199,14 +459,16 @@ fetch("https://api.github.com/users/ETI-PATAGONIA-AR/repos")
     const c = document.getElementById("repoCarousel");
     repos
       .filter(r => !r.fork)
-      .sort((a,b)=>new Date(b.updated_at)-new Date(a.updated_at))
+      .sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at))
       .forEach(repo => {
         c.innerHTML += `
           <div class="repo-card">
-            <h6>${repo.name}</h6>
-            <img src="https://opengraph.githubassets.com/1/${repo.full_name}">
-            <div class="repo-body">${repo.description ?? "Sin descripción"}</div>
-            <a href="${repo.html_url}" target="_blank">Seguir leyendo →</a>
+            <div class="card-head">${repo.name}</div>
+            <img src="https://opengraph.githubassets.com/1/${repo.full_name}" alt="${repo.name}" loading="lazy">
+            <div class="card-body">${repo.description ?? "Sin descripción"}</div>
+            <div class="card-footer">
+              <a href="${repo.html_url}" target="_blank">Seguir leyendo <i class="bi bi-arrow-right"></i></a>
+            </div>
           </div>
         `;
       });
@@ -214,7 +476,7 @@ fetch("https://api.github.com/users/ETI-PATAGONIA-AR/repos")
 
 function scrollRepos(dir) {
   document.getElementById("repoCarousel")
-    .scrollBy({ left: dir * 300, behavior: "smooth" });
+    .scrollBy({ left: dir * 310, behavior: "smooth" });
 }
 </script>
 
