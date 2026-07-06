@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ETI Patagonia — Contenidos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root { --eti-dark: #0b1a33; --eti-light: #f8f9fc; --eti-accent: #8ab4f8; }
+    body { font-family: system-ui, sans-serif; background: var(--eti-light); }
+    .navbar { background: var(--eti-dark) !important; }
+    .content-card { background: #fff; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.05); padding: 1.2rem; transition: transform .2s, box-shadow .2s; cursor: pointer; border: 1px solid #e6edf4; height: 100%; }
+    .content-card:hover { transform: translateY(-3px); box-shadow: 0 6px 24px rgba(0,0,0,.1); }
+    .content-card .card-section { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--eti-accent); margin-bottom: .3rem; }
+    .content-card h5 { font-size: 1rem; font-weight: 700; color: var(--eti-dark); margin-bottom: .4rem; }
+    .content-card p { font-size: .82rem; color: #5a6a7a; margin-bottom: .5rem; }
+    .content-card .card-meta { font-size: .72rem; color: #8a9aaa; }
+    .content-card .card-tags .badge { background: #eef2f7; color: #4a5a6a; font-weight: 500; margin-right: 3px; font-size: .7rem; }
+    .section-nav-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; border: 1px solid #d0d8e4; background: #fff; font-size: .8rem; font-weight: 500; color: #4a5a6a; cursor: pointer; transition: all .2s; }
+    .section-nav-btn:hover { border-color: var(--eti-dark); color: var(--eti-dark); }
+    .section-nav-btn.active { background: var(--eti-dark); color: #fff; border-color: var(--eti-dark); }
+    .viewer-content { line-height: 1.8; font-size: .95rem; }
+    .viewer-content h1 { font-size: 1.6rem; font-weight: 700; margin: 1em 0 .5em; }
+    .viewer-content h2 { font-size: 1.3rem; font-weight: 700; margin: .8em 0 .4em; }
+    .viewer-content h3 { font-size: 1.1rem; font-weight: 600; margin: .6em 0 .3em; }
+    .viewer-content img { max-width: 100%; border-radius: 8px; margin: 1em 0; }
+    .viewer-content pre { background: #1e2a3a; color: #e4eaf0; padding: 16px; border-radius: 10px; overflow-x: auto; font-size: .82rem; }
+    .viewer-content pre code { background: none; color: inherit; padding: 0; }
+    .viewer-content code { background: #eef2f7; color: #c7254e; padding: 2px 6px; border-radius: 4px; font-size: .85em; }
+    .viewer-content blockquote { border-left: 4px solid var(--eti-dark); padding: 8px 16px; margin: 1em 0; background: #f5f7fa; border-radius: 0 8px 8px 0; font-style: italic; }
+    .eti-code-block { position: relative; margin: 1em 0; border-radius: 10px; overflow: hidden; background: #1e2a3a; }
+    .eti-code-block .code-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: #151f2b; color: rgba(255,255,255,.5); font-size: .7rem; font-weight: 600; }
+    .eti-code-block .code-header .copy-btn { background: rgba(255,255,255,.1); border: none; color: rgba(255,255,255,.6); padding: 3px 12px; border-radius: 4px; font-size: .7rem; cursor: pointer; }
+    .eti-code-block .code-header .copy-btn:hover { background: rgba(255,255,255,.2); color: #fff; }
+    .eti-code-block pre { margin: 0; border-radius: 0; padding: 14px 16px; }
+    .question-card { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: .6rem; border: 1px solid #e6edf4; cursor: pointer; transition: box-shadow .2s; }
+    .question-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+    .question-card .q-title { font-weight: 600; color: var(--eti-dark); }
+    .question-card .q-meta { font-size: .75rem; color: #8a9aaa; }
+    .answer-card { background: #f5f7fa; border-radius: 10px; padding: .8rem 1rem; margin: .5rem 0 .5rem 1.5rem; border-left: 3px solid var(--eti-dark); }
+    .badge-resolved { background: #d4edda; color: #155724; font-size: .65rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #9aaaba; }
+    .empty-state i { font-size: 3rem; display: block; margin-bottom: .8rem; opacity: .4; }
+    .page-title { font-weight: 700; color: var(--eti-dark); }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="index.html"><img src="img/logo2.png" height="34" alt="ETI"> ETI Patagonia</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" onclick="navigate('dashboard')"><i class="bi bi-collection me-1"></i>Contenidos</a></li>
+        <li class="nav-item"><a class="nav-link" href="javascript:void(0)" onclick="navigate('foro')"><i class="bi bi-chat-dots me-1"></i>Foro</a></li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" data-bs-toggle="dropdown"><i class="bi bi-person-circle me-1"></i><span id="userName">Usuario</span></a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="javascript:void(0)" onclick="logout()"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<div class="container py-4" id="appContainer"><div class="text-center py-5"><div class="spinner-border text-dark" role="status"></div><p class="mt-2 text-muted small">Cargando...</p></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://gsppzvpgdgapotsrrksk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcHB6dnBnZGdhcG90c3Jya3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNTE2OTksImV4cCI6MjA5ODkyNzY5OX0.R6BvlqytSNa33DfaI3k3uL4gdHmqxiZlrApzoaCRZgA';
+
+let currentUser = null;
+let allContents = [];
+let currentSection = 'aplicaciones';
+
+const SECTIONS = [
+  { id: 'aplicaciones', label: 'Aplicaciones', icon: 'bi-grid' },
+  { id: 'proyectos', label: 'Proyectos', icon: 'bi-rocket-takeoff' },
+  { id: 'arduino', label: 'Arduino', icon: 'bi-cpu' },
+  { id: 'docentes', label: 'Docentes', icon: 'bi-mortarboard' },
+  { id: 'uplc', label: 'uPLC', icon: 'bi-motherboard' },
+  { id: 'foro', label: 'Foro', icon: 'bi-chat-dots' },
+];
+const SEC_LABEL = Object.fromEntries(SECTIONS.map(s => [s.id, s.label]));
+
+function getToken() { return localStorage.getItem('sb_token'); }
+
+function authHeaders() {
+  const h = { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' };
+  const t = getToken();
+  if (t) h['Authorization'] = 'Bearer ' + t;
+  return h;
+}
+
+function api(path, opts = {}) {
+  return fetch(SUPABASE_URL + path, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } })
+    .then(r => r.json());
+}
+
+async function checkAuth() {
+  const token = getToken();
+  if (!token) { window.location.href = 'login.html'; return false; }
+  try {
+    const user = await api('/auth/v1/user', { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token } });
+    if (user && user.id) { currentUser = user; return true; }
+    localStorage.removeItem('sb_token');
+    localStorage.removeItem('sb_user');
+    window.location.href = 'login.html';
+    return false;
+  } catch(e) { return true; }
+}
+
+async function init() {
+  const ok = await checkAuth();
+  if (!ok) return;
+
+  const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Usuario';
+  document.getElementById('userName').textContent = name;
+
+  window.addEventListener('hashchange', renderRoute);
+  renderRoute();
+}
+
+function navigate(page) { window.location.hash = page; }
+function renderRoute() {
+  const hash = window.location.hash.slice(1) || 'dashboard';
+  const [page, qs] = hash.split('?');
+  if (page === 'dashboard') renderDashboard();
+  else if (page === 'ver') renderContent(qs);
+  else if (page === 'foro') renderForo();
+  else renderDashboard();
+}
+
+// ── DASHBOARD ──
+async function renderDashboard() {
+  const container = document.getElementById('appContainer');
+  container.innerHTML = `
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <h4 class="page-title mb-0"><i class="bi bi-collection me-2"></i>Contenidos</h4>
+      <div class="d-flex gap-2 flex-wrap" id="sectionFilters">
+        ${SECTIONS.map(s => `<button class="section-nav-btn${s.id === currentSection ? ' active' : ''}" onclick="filterSection('${s.id}', this)"><i class="${s.icon}"></i>${s.label}</button>`).join('')}
+      </div>
+    </div>
+    <div id="contentGrid"><div class="text-center py-5"><div class="spinner-border text-dark" role="status"></div></div></div>`;
+
+  try {
+    const data = await api('/rest/v1/contents?select=*&status=eq.published&order=updated_at.desc');
+    allContents = Array.isArray(data) ? data : (data.error ? [] : data);
+    filterSection(currentSection, document.querySelector('.section-nav-btn.active') || document.querySelector('.section-nav-btn'));
+  } catch(e) { container.innerHTML = '<div class="alert alert-warning mt-3">Error al cargar contenidos</div>'; }
+}
+
+function filterSection(section, btn) {
+  currentSection = section;
+  document.querySelectorAll('.section-nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const filtered = allContents.filter(c => c.section === section);
+  const grid = document.getElementById('contentGrid');
+  if (!filtered.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i>No hay contenido en esta sección.</div>'; return; }
+  grid.innerHTML = `<div class="row g-3">${filtered.map(c => `
+    <div class="col-md-6 col-lg-4">
+      <div class="content-card" onclick="navigate('ver?id=${c.id}')">
+        <div class="card-section">${SEC_LABEL[c.section] || c.section}</div>
+        <h5>${esc(c.title)}</h5>
+        <p>${esc(c.excerpt || (c.content||'').replace(/<[^>]*>/g,'').slice(0,150)||'')}</p>
+        <div class="card-meta d-flex justify-content-between">
+          <span><i class="bi bi-person me-1"></i>${esc(c.author||'Anónimo')}</span>
+          <span>${fecha(c.updated_at)}</span>
+        </div>
+        ${c.tags ? `<div class="card-tags mt-2">${c.tags.split(',').map(t => `<span class="badge">${t.trim()}</span>`).join(' ')}</div>` : ''}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+// ── CONTENT VIEWER ──
+async function renderContent(qs) {
+  const id = new URLSearchParams(qs||'').get('id');
+  const container = document.getElementById('appContainer');
+  if (!id) { navigate('dashboard'); return; }
+
+  try {
+    const items = await api('/rest/v1/contents?select=*&id=eq.' + id);
+    const c = Array.isArray(items) ? items[0] : null;
+    if (!c) throw new Error('No encontrado');
+
+    container.innerHTML = `
+      <a href="javascript:void(0)" onclick="navigate('dashboard')" class="text-decoration-none small mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+      <article>
+        <div class="mb-1"><span class="badge bg-dark">${SEC_LABEL[c.section]||c.section}</span>${c.tags ? c.tags.split(',').map(t => `<span class="badge bg-secondary ms-1">${t.trim()}</span>`).join('') : ''}</div>
+        <h2 class="fw-bold" style="color:var(--eti-dark)">${esc(c.title)}</h2>
+        <p class="text-muted small mb-3"><i class="bi bi-person me-1"></i>${esc(c.author||'Anónimo')} · ${fecha(c.updated_at)}</p>
+        <div class="viewer-content">${procesarContenido(c.content||'')}</div>
+      </article>`;
+  } catch(e) { container.innerHTML = '<div class="alert alert-warning mt-3">Error: ' + e.message + '</div>'; }
+}
+
+// ── FORO ──
+async function renderForo() {
+  const container = document.getElementById('appContainer');
+  container.innerHTML = `
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h4 class="page-title mb-0"><i class="bi bi-chat-dots me-2"></i>Foro</h4>
+      <button class="btn btn-dark btn-sm" onclick="nuevaPregunta()"><i class="bi bi-plus-lg me-1"></i>Preguntar</button>
+    </div>
+    <div id="forumContent"><div class="text-center py-5"><div class="spinner-border text-dark" role="status"></div></div></div>`;
+
+  try {
+    const questions = Array.isArray(await api('/rest/v1/questions?select=*&order=created_at.desc')) 
+      ? await api('/rest/v1/questions?select=*&order=created_at.desc') : [];
+    const grid = document.getElementById('forumContent');
+    if (!questions.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-chat-square-text"></i>No hay preguntas aún.</div>'; return; }
+
+    // Get answers count for each question
+    const answersMap = {};
+    for (const q of questions) {
+      try {
+        const ans = await api('/rest/v1/answers?select=id&question_id=eq.' + q.id);
+        answersMap[q.id] = Array.isArray(ans) ? ans.length : 0;
+      } catch(e) { answersMap[q.id] = 0; }
+    }
+
+    grid.innerHTML = questions.map(q => `
+      <div class="question-card" onclick="verPregunta('${q.id}')">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="q-title">${esc(q.title)}</div>
+            <div class="q-meta mt-1"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span> · ${answersMap[q.id]||0} respuestas</div>
+          </div>
+          ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { document.getElementById('forumContent').innerHTML = '<div class="alert alert-warning mt-3">Error al cargar foro</div>'; }
+}
+
+async function verPregunta(id) {
+  const container = document.getElementById('appContainer');
+  try {
+    const qs = Array.isArray(await api('/rest/v1/questions?select=*&id=eq.' + id)) 
+      ? await api('/rest/v1/questions?select=*&id=eq.' + id) : [];
+    const q = qs[0];
+    if (!q) throw new Error('No encontrada');
+    const answers = Array.isArray(await api('/rest/v1/answers?select=*&question_id=eq.' + id + '&order=created_at.asc'))
+      ? await api('/rest/v1/answers?select=*&question_id=eq.' + id + '&order=created_at.asc') : [];
+
+    const isTeacher = currentUser?.email === 'prof.martintorres@educ.ar';
+
+    container.innerHTML = `
+      <a href="javascript:void(0)" onclick="navigate('foro')" class="text-decoration-none small mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i>Volver al foro</a>
+      <div class="card p-3 mb-3" style="border-radius:14px;border:1px solid #e6edf4">
+        <div class="d-flex justify-content-between">
+          <h5 class="fw-bold" style="color:var(--eti-dark)">${esc(q.title)}</h5>
+          ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+        </div>
+        <p class="text-muted small"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span></p>
+        <div class="mt-2">${q.content || 'Sin descripción'}</div>
+      </div>
+      <h6 class="fw-bold mb-2">Respuestas (${answers.length})</h6>
+      <div id="answersContainer">
+        ${!answers.length ? '<p class="text-muted small">Sin respuestas aún.</p>' :
+          answers.map(a => `
+            <div class="answer-card">
+              <div class="d-flex justify-content-between">
+                <span class="ans-meta" style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(a.author)} · ${fecha(a.created_at)}</span>
+                ${isTeacher && !q.resolved ? `<button class="btn btn-sm btn-outline-success py-0" onclick="marcarResuelta('${q.id}')" style="font-size:.7rem"><i class="bi bi-check-lg"></i></button>` : ''}
+              </div>
+              <div class="mt-1">${esc(a.content)}</div>
+            </div>
+          `).join('')}
+      </div>
+      <div class="mt-3">
+        <textarea class="form-control" id="ansInput" rows="2" placeholder="Escribí tu respuesta..." style="border-radius:10px;font-size:.85rem"></textarea>
+        <button class="btn btn-dark btn-sm mt-2" onclick="responder('${q.id}')"><i class="bi bi-reply me-1"></i>Responder</button>
+        ${isTeacher && !q.resolved ? `<button class="btn btn-outline-success btn-sm mt-2 ms-2" onclick="marcarResuelta('${q.id}')"><i class="bi bi-check-circle me-1"></i>Marcar resuelta</button>` : ''}
+      </div>`;
+  } catch(e) { container.innerHTML = '<div class="alert alert-warning mt-3">Error: ' + e.message + '</div>'; }
+}
+
+async function responder(id) {
+  const val = document.getElementById('ansInput').value.trim();
+  if (!val) return;
+  const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
+  try {
+    await api('/rest/v1/answers', {
+      method: 'POST',
+      body: JSON.stringify({ question_id: id, content: val, author: name, user_id: currentUser?.id })
+    });
+    verPregunta(id);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function marcarResuelta(id) {
+  try {
+    await api('/rest/v1/questions?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal', ...authHeaders() },
+      body: JSON.stringify({ resolved: true })
+    });
+    verPregunta(id);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function nuevaPregunta() {
+  const container = document.getElementById('appContainer');
+  container.innerHTML = `
+    <a href="javascript:void(0)" onclick="navigate('foro')" class="text-decoration-none small mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+    <div class="card p-4" style="border-radius:14px;border:1px solid #e6edf4;max-width:600px">
+      <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>Nueva Pregunta</h5>
+      <div class="mb-3"><label class="form-label small fw-semibold">Título</label><input type="text" class="form-control" id="qTitle" placeholder="Ej: ¿Cómo configuro un sensor DHT11?"></div>
+      <div class="mb-3"><label class="form-label small fw-semibold">Sección</label>
+        <select class="form-select" id="qSection">${SECTIONS.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}</select>
+      </div>
+      <div class="mb-3"><label class="form-label small fw-semibold">Descripción</label><textarea class="form-control" id="qContent" rows="4" placeholder="Contá más detalles..."></textarea></div>
+      <button class="btn btn-dark" onclick="enviarPregunta()"><i class="bi bi-send me-1"></i>Publicar</button>
+    </div>`;
+}
+
+async function enviarPregunta() {
+  const title = document.getElementById('qTitle').value.trim();
+  const section = document.getElementById('qSection').value;
+  const content = document.getElementById('qContent').value.trim();
+  if (!title) { alert('El título es obligatorio.'); return; }
+  const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
+  try {
+    await api('/rest/v1/questions', {
+      method: 'POST',
+      body: JSON.stringify({ title, section, content, author: name, user_id: currentUser?.id })
+    });
+    navigate('foro');
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function logout() {
+  localStorage.removeItem('sb_token');
+  localStorage.removeItem('sb_user');
+  window.location.href = 'index.html';
+}
+
+// ── UTILS ──
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fecha(d) { if (!d) return ''; return new Date(d).toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
+
+function procesarContenido(html) {
+  if (!html) return '';
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  div.querySelectorAll('pre').forEach(pre => {
+    if (!pre.closest('.eti-code-block')) {
+      const w = document.createElement('div'); w.className = 'eti-code-block';
+      const h = document.createElement('div'); h.className = 'code-header';
+      h.innerHTML = '<span>Código</span><button class="copy-btn" onclick="copiarCodigo(this)"><i class="bi bi-clipboard me-1"></i>Copiar</button>';
+      pre.parentNode.insertBefore(w, pre); w.appendChild(h); w.appendChild(pre);
+    }
+  });
+  return div.innerHTML;
+}
+
+function copiarCodigo(btn) {
+  const pre = btn.closest('.eti-code-block').querySelector('pre');
+  if (!pre) return;
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copiado';
+    setTimeout(() => btn.innerHTML = orig, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
