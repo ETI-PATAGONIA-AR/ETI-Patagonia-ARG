@@ -100,6 +100,7 @@ window.logout = logout;
 window.copiarCodigo = copiarCodigo;
 window.togglePin = togglePin;
 window.eliminar = eliminar;
+window.eliminarPregunta = eliminarPregunta;
 
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -147,6 +148,7 @@ async function renderDashboard() {
 }
 
 function filterSection(section, btn) {
+  if (section === 'foro') { navigate('foro'); return; }
   currentSection = section;
   document.querySelectorAll('.section-nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
@@ -217,6 +219,7 @@ async function renderForo() {
     counts[q.id] = count || 0;
   }
 
+  const isTeacher = currentUser?.email === 'prof.martintorres@educ.ar';
   grid.innerHTML = questions.map(q => `
     <div class="question-card" onclick="verPregunta('${q.id}')">
       <div class="d-flex justify-content-between align-items-start">
@@ -224,7 +227,10 @@ async function renderForo() {
           <div class="q-title">${esc(q.title)}</div>
           <div class="q-meta mt-1" style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span> · ${counts[q.id]} respuestas</div>
         </div>
-        ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+        <div class="d-flex align-items-center gap-2">
+          ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+          ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#dc3545" onclick="event.stopPropagation();eliminarPregunta('${q.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
+        </div>
       </div>
     </div>
   `).join('');
@@ -243,7 +249,10 @@ async function verPregunta(id) {
     <div class="card p-3 mb-3" style="border-radius:14px;border:1px solid #e6edf4">
       <div class="d-flex justify-content-between">
         <h5 class="fw-bold" style="color:var(--eti-dark)">${esc(q.title)}</h5>
-        ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+        <div class="d-flex align-items-center gap-2">
+          ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+          ${isTeacher ? `<button class="btn btn-sm border-0" style="color:#dc3545" onclick="eliminarPregunta('${q.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
+        </div>
       </div>
       <p class="text-muted small"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span></p>
       <div>${q.content || ''}</div>
@@ -300,12 +309,21 @@ async function enviarPregunta() {
   const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
   const { error } = await supabase.from('questions').insert({ title, section, content, author: name, user_id: currentUser?.id });
   if (error) { alert('Error: ' + error.message); return; }
+  showToast('Pregunta publicada en el foro', 'success');
   navigate('foro');
 }
 
 function logout() {
   localStorage.removeItem('sb_token');
   supabase.auth.signOut().then(() => { window.location.href = 'index.html'; });
+}
+
+function showToast(msg, type) {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:10px;font-size:.85rem;font-weight:500;z-index:9999;transition:opacity .3s;background:' + (type === 'success' ? '#2d7d46' : '#dc3545') + ';color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.15)';
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 300); }, 2500);
 }
 
 // ── UTILS ──
@@ -348,6 +366,14 @@ async function eliminar(id) {
   const { error } = await supabase.from('contents').delete().eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
   renderDashboard();
+}
+
+async function eliminarPregunta(id) {
+  if (!confirm('¿Eliminar esta pregunta y todas sus respuestas?')) return;
+  const { error } = await supabase.from('questions').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  showToast('Pregunta eliminada', 'success');
+  navigate('foro');
 }
 
 // Init
