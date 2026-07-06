@@ -123,7 +123,7 @@ window.handleRegister = async function() {
   document.getElementById('regBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creando...';
 
   const { data, error } = await supabase.auth.signUp({
-    email, password,
+    email: email, password: pass,
     options: { data: { full_name: name } }
   });
 
