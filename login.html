@@ -24,8 +24,6 @@
       <div class="col-md-6 col-lg-4">
         <div class="auth-card text-center">
           <img src="img/logo2.png" class="logo" alt="ETI">
-
-          <!-- Login -->
           <div id="loginView">
             <h4 class="mb-1">Bienvenido</h4>
             <p class="text-muted small mb-3">Iniciá sesión para acceder al contenido</p>
@@ -45,8 +43,6 @@
               ¿No tenés cuenta? <a href="#" onclick="event.preventDefault();showRegister()">Registrate</a>
             </p>
           </div>
-
-          <!-- Register -->
           <div id="registerView" style="display:none">
             <h4 class="mb-1">Crear Cuenta</h4>
             <p class="text-muted small mb-3">Registrate para acceder al contenido</p>
@@ -83,31 +79,19 @@
     </div>
   </div>
 
-<script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
 const SUPABASE_URL = 'https://gsppzvpgdgapotsrrksk.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcHB6dnBnZGdhcG90c3Jya3NrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNTE2OTksImV4cCI6MjA5ODkyNzY5OX0.R6BvlqytSNa33DfaI3k3uL4gdHmqxiZlrApzoaCRZgA';
 
-function sbFetch(path, options = {}) {
-  const url = SUPABASE_URL + path;
-  const headers = {
-    'apikey': SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
-  };
-  if (options.auth !== false) {
-    const token = localStorage.getItem('sb_token');
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-  }
-  return fetch(url, { ...options, headers })
-    .then(r => r.json().then(d => ({ data: d, error: null, status: r.status }))
-      .catch(() => ({ data: null, error: 'Invalid response', status: r.status })));
-}
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function showError(el, msg) {
-  el.textContent = msg; el.style.display = 'block';
-}
+window._supabase = supabase;
 
-async function handleLogin() {
+function showError(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+window.handleLogin = async function() {
   const email = document.getElementById('loginEmail').value.trim();
   const password = document.getElementById('loginPassword').value;
   const err = document.getElementById('loginError');
@@ -117,29 +101,14 @@ async function handleLogin() {
   document.getElementById('loginBtn').disabled = true;
   document.getElementById('loginBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ingresando...';
 
-  try {
-    const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (data.error) { showError(err, data.error_description || data.msg || 'Error al iniciar sesión'); return; }
-    if (data.access_token) {
-      localStorage.setItem('sb_token', data.access_token);
-      localStorage.setItem('sb_user', JSON.stringify(data.user));
-      window.location.href = 'app.html';
-    } else {
-      showError(err, 'Error inesperado. Revisá tus credenciales.');
-    }
-  } catch(e) {
-    showError(err, 'Error de conexión: ' + e.message);
-  }
-  document.getElementById('loginBtn').disabled = false;
-  document.getElementById('loginBtn').innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Ingresar';
-}
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) { showError(err, error.message); document.getElementById('loginBtn').disabled = false; document.getElementById('loginBtn').innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i> Ingresar'; return; }
 
-async function handleRegister() {
+  localStorage.setItem('sb_token', data.session.access_token);
+  window.location.href = 'app.html';
+};
+
+window.handleRegister = async function() {
   const name = document.getElementById('regName').value.trim();
   const email = document.getElementById('regEmail').value.trim();
   const pass = document.getElementById('regPassword').value;
@@ -153,60 +122,52 @@ async function handleRegister() {
   document.getElementById('regBtn').disabled = true;
   document.getElementById('regBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creando...';
 
-  try {
-    const res = await fetch(SUPABASE_URL + '/auth/v1/signup', {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, data: { full_name: name } })
-    });
-    const data = await res.json();
-    if (data.error) { showError(err, data.error_description || data.msg || 'Error al registrarse'); return; }
-    if (data.id || data.user) {
-      err.className = 'alert alert-success alert-msg';
-      showError(err, 'Cuenta creada. Ahora iniciá sesión.');
-      setTimeout(showLogin, 2000);
-    } else {
-      showError(err, 'Cuenta creada. Revisá tu email para confirmar (si no llega, revisá spam)');
-    }
-  } catch(e) {
-    showError(err, 'Error de conexión: ' + e.message);
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { full_name: name } }
+  });
+
+  if (error) { showError(err, error.message); document.getElementById('regBtn').disabled = false; document.getElementById('regBtn').innerHTML = '<i class="bi bi-person-plus me-1"></i> Crear Cuenta'; return; }
+
+  const user = data?.user;
+  if (user?.identities?.length === 0) {
+    err.className = 'alert alert-success alert-msg';
+    showError(err, 'Este email ya está registrado. Iniciá sesión.');
+    setTimeout(showLogin, 2000);
+  } else if (user && !user.confirmed_at) {
+    err.className = 'alert alert-success alert-msg';
+    showError(err, 'Cuenta creada. Revisá tu email para confirmar (si no llega, revisá spam).');
+  } else {
+    err.className = 'alert alert-success alert-msg';
+    showError(err, 'Cuenta creada. Ahora iniciá sesión.');
+    setTimeout(showLogin, 2000);
   }
+
   document.getElementById('regBtn').disabled = false;
   document.getElementById('regBtn').innerHTML = '<i class="bi bi-person-plus me-1"></i> Crear Cuenta';
-}
+};
 
-function showRegister() {
+window.showRegister = function() {
   document.getElementById('loginView').style.display = 'none';
   document.getElementById('registerView').style.display = 'block';
   document.getElementById('regError').style.display = 'none';
   document.getElementById('regError').className = 'alert alert-danger alert-msg';
-}
+};
 
-function showLogin() {
+window.showLogin = function() {
   document.getElementById('loginView').style.display = 'block';
   document.getElementById('registerView').style.display = 'none';
   document.getElementById('loginError').style.display = 'none';
-}
+};
 
-// Check if already logged in
-(async function() {
-  try {
-    const token = localStorage.getItem('sb_token');
-    if (token) {
-      const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
-      });
-      const user = await res.json();
-      if (user && user.id) {
-        window.location.href = 'app.html';
-        return;
-      }
-      localStorage.removeItem('sb_token');
-      localStorage.removeItem('sb_user');
-    }
-  } catch(e) {}
+// Check session
+const { data: { session } } = await supabase.auth.getSession();
+if (session) {
+  localStorage.setItem('sb_token', session.access_token);
+  window.location.href = 'app.html';
+} else {
   document.getElementById('connStatus').innerHTML = '<i class="bi bi-cloud-check me-1"></i> Listo';
-})();
+}
 </script>
 </body>
 </html>
