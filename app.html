@@ -75,9 +75,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let allContents = [];
-let currentSection = 'aplicaciones';
+let currentSection = 'inicio';
 
 const SECTIONS = [
+  { id: 'inicio', label: 'Inicio', icon: 'bi-house-door' },
   { id: 'aplicaciones', label: 'Aplicaciones', icon: 'bi-grid' },
   { id: 'proyectos', label: 'Proyectos', icon: 'bi-rocket-takeoff' },
   { id: 'arduino', label: 'Arduino', icon: 'bi-cpu' },
@@ -97,6 +98,8 @@ window.responder = responder;
 window.marcarResuelta = marcarResuelta;
 window.logout = logout;
 window.copiarCodigo = copiarCodigo;
+window.togglePin = togglePin;
+window.eliminar = eliminar;
 
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -137,7 +140,7 @@ async function renderDashboard() {
     </div>
     <div id="contentGrid"><div class="text-center py-5"><div class="spinner-border text-dark" role="status"></div></div></div>`;
 
-  const { data, error } = await supabase.from('contents').select('*').eq('status', 'published').order('updated_at', { ascending: false });
+  const { data, error } = await supabase.from('contents').select('*').eq('status', 'published').order('pinned', { ascending: false }).order('updated_at', { ascending: false });
   if (error) { document.getElementById('contentGrid').innerHTML = '<div class="alert alert-warning mt-3">Error: ' + error.message + '</div>'; return; }
   allContents = data || [];
   filterSection(currentSection, document.querySelector('.section-nav-btn.active') || document.querySelector('.section-nav-btn'));
@@ -147,13 +150,20 @@ function filterSection(section, btn) {
   currentSection = section;
   document.querySelectorAll('.section-nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const filtered = allContents.filter(c => c.section === section);
+  const isOwner = (c) => currentUser && c.user_id === currentUser.id;
+  let filtered = section === 'inicio' ? allContents : allContents.filter(c => c.section === section);
   const grid = document.getElementById('contentGrid');
   if (!filtered.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i>No hay contenido en esta sección.</div>'; return; }
   grid.innerHTML = `<div class="row g-3">${filtered.map(c => `
     <div class="col-md-6 col-lg-4">
       <div class="content-card" onclick="navigate('ver?id=${c.id}')">
-        <div class="card-section">${SEC_LABEL[c.section] || c.section}</div>
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="card-section">${SEC_LABEL[c.section] || c.section}${c.pinned ? ' <i class="bi bi-pin-fill" style="color:var(--eti-dark)"></i>' : ''}</div>
+          <div class="d-flex gap-1">
+            ${isOwner(c) ? `<button class="btn btn-sm p-0 border-0" style="color:#8a9aaa" onclick="event.stopPropagation();togglePin('${c.id}', ${c.pinned})" title="${c.pinned ? 'Desfijar' : 'Fijar'}"><i class="bi ${c.pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>` : ''}
+            ${isOwner(c) ? `<button class="btn btn-sm p-0 border-0" style="color:#dc3545" onclick="event.stopPropagation();eliminar('${c.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
+          </div>
+        </div>
         <h5>${esc(c.title)}</h5>
         <p>${esc(c.excerpt || (c.content||'').replace(/<[^>]*>/g,'').slice(0,150)||'')}</p>
         <div class="card-meta d-flex justify-content-between">
@@ -325,6 +335,19 @@ function copiarCodigo(btn) {
     btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copiado';
     setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copiar', 2000);
   });
+}
+
+async function togglePin(id, current) {
+  const { error } = await supabase.from('contents').update({ pinned: !current }).eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  renderDashboard();
+}
+
+async function eliminar(id) {
+  if (!confirm('¿Eliminar este contenido permanentemente?')) return;
+  const { error } = await supabase.from('contents').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  renderDashboard();
 }
 
 // Init
