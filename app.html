@@ -138,7 +138,7 @@ async function renderDashboard() {
     <div id="contentGrid"><div class="text-center py-5"><div class="spinner-border text-dark" role="status"></div></div></div>`;
 
   const { data, error } = await supabase.from('contents').select('*').eq('status', 'published').order('updated_at', { ascending: false });
-  if (error) { document.getElementById('contentGrid').innerHTML = '<div class="alert alert-warning mt-3">Error al cargar</div>'; return; }
+  if (error) { document.getElementById('contentGrid').innerHTML = '<div class="alert alert-warning mt-3">Error: ' + error.message + '</div>'; return; }
   allContents = data || [];
   filterSection(currentSection, document.querySelector('.section-nav-btn.active') || document.querySelector('.section-nav-btn'));
 }
