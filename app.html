@@ -50,6 +50,14 @@
     .empty-state { text-align: center; padding: 3rem 1rem; color: #9aaaba; }
     .empty-state i { font-size: 3rem; display: block; margin-bottom: .8rem; opacity: .4; }
     .page-title { font-weight: 700; color: var(--eti-dark); }
+    .fe-wrap { border:1px solid #d0d8e4;border-radius:10px;overflow:hidden;background:#fff }
+    .fe-toolbar { display:flex;gap:2px;padding:5px 8px;background:#f5f7fa;border-bottom:1px solid #e2e8f0;flex-wrap:wrap }
+    .fe-toolbar button { width:28px;height:26px;border:none;background:transparent;border-radius:4px;color:#4a5a6a;cursor:pointer;font-size:.78rem;display:flex;align-items:center;justify-content:center;transition:background .15s }
+    .fe-toolbar button:hover { background:#e0e6ef }
+    .fe-content { padding:10px 12px;min-height:60px;outline:none;font-size:.85rem;line-height:1.6 }
+    .fe-content:empty::before { content:attr(data-placeholder);color:#b0bcc8;font-style:italic }
+    .fe-content pre { background:#1e2a3a;color:#e4eaf0;padding:10px 14px;border-radius:6px;overflow-x:auto;font-size:.78rem;margin:6px 0 }
+    .fe-content img { max-width:100%;border-radius:6px;margin:6px 0 }
   </style>
 </head>
 <body>
@@ -272,26 +280,28 @@ async function verPregunta(id) {
         </div>
       </div>
       <p class="text-muted small"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span></p>
-      <div>${q.content || ''}</div>
+      <div class="viewer-content">${procesarContenido(q.content || '')}</div>
     </div>
     <h6 class="fw-bold mb-2">Respuestas (${answers?.length||0})</h6>
     <div id="answersContainer">
       ${!answers?.length ? '<p class="text-muted small">Sin respuestas aún.</p>' :
         answers.map(a => `<div class="answer-card">
           <div style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(a.author)} · ${fecha(a.created_at)}</div>
-          <div class="mt-1">${esc(a.content)}</div>
+          <div class="mt-1 viewer-content">${procesarContenido(a.content || '')}</div>
         </div>`).join('')}
     </div>
     <div class="mt-3">
-      <textarea class="form-control" id="ansInput" rows="2" placeholder="Escribí tu respuesta..." style="border-radius:10px;font-size:.85rem"></textarea>
+      <textarea class="form-control" id="ansInput" rows="2" placeholder="Escribí tu respuesta..." style="border-radius:10px;font-size:.85rem;display:none"></textarea>
       <button class="btn btn-dark btn-sm mt-2" onclick="responder('${q.id}')"><i class="bi bi-reply me-1"></i>Responder</button>
       ${isTeacher && !q.resolved ? `<button class="btn btn-outline-success btn-sm mt-2 ms-2" onclick="marcarResuelta('${q.id}')"><i class="bi bi-check-circle me-1"></i>Marcar resuelta</button>` : ''}
     </div>`;
+  setTimeout(() => makeRichEditor('ansInput'), 50);
 }
 
 async function responder(id) {
-  const val = document.getElementById('ansInput').value.trim();
-  if (!val) return;
+  const fe = document.getElementById('ansInput_fe');
+  const val = fe ? fe.innerHTML.trim() : document.getElementById('ansInput').value.trim();
+  if (!val || val === '<br>') return;
   const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
   const { error } = await supabase.from('answers').insert({ question_id: id, content: val, author: name, user_id: currentUser?.id });
   if (error) { alert('Error: ' + error.message); return; }
@@ -307,18 +317,20 @@ async function marcarResuelta(id) {
 function nuevaPregunta() {
   document.getElementById('appContainer').innerHTML = `
     <a href="javascript:void(0)" onclick="navigate('foro')" class="text-decoration-none small mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i>Volver</a>
-    <div class="card p-4" style="border-radius:14px;border:1px solid #e6edf4;max-width:600px">
+    <div class="card p-4" style="border-radius:14px;border:1px solid #e6edf4;max-width:700px">
       <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>Nueva Pregunta</h5>
       <div class="mb-3"><label class="form-label small fw-semibold">Título</label><input type="text" class="form-control" id="qTitle"></div>
-      <div class="mb-3"><label class="form-label small fw-semibold">Descripción</label><textarea class="form-control" id="qContent" rows="4"></textarea></div>
+      <div class="mb-3"><label class="form-label small fw-semibold">Descripción</label><textarea class="form-control" id="qContent" rows="4" style="display:none"></textarea></div>
       <button class="btn btn-dark" onclick="enviarPregunta()"><i class="bi bi-send me-1"></i>Publicar</button>
     </div>`;
+  setTimeout(() => makeRichEditor('qContent'), 50);
 }
 
 async function enviarPregunta() {
   const title = document.getElementById('qTitle').value.trim();
   const section = 'foro';
-  const content = document.getElementById('qContent').value.trim();
+  const fe = document.getElementById('qContent_fe');
+  const content = fe ? fe.innerHTML.trim() : document.getElementById('qContent').value.trim();
   if (!title) { alert('El título es obligatorio.'); return; }
   const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
   const { error } = await supabase.from('questions').insert({ title, section, content, author: name, user_id: currentUser?.id });
@@ -402,6 +414,93 @@ async function eliminarPregunta(id) {
   if (error) { alert('Error: ' + error.message); return; }
   showToast('Pregunta eliminada', 'success');
   navigate('foro');
+}
+
+// ── Rich text editor for forum ──
+function makeRichEditor(textareaId) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'fe-wrap';
+  const placeholder = ta.placeholder || 'Escribí...';
+  const initial = ta.value || '';
+  ta.style.display = 'none';
+  ta.parentNode.insertBefore(wrap, ta);
+  wrap.innerHTML = `<div class="fe-toolbar">
+    <button onclick="feCmd('${textareaId}','bold')" title="Negrita"><b>B</b></button>
+    <button onclick="feCmd('${textareaId}','italic')" title="Cursiva"><i>I</i></button>
+    <button onclick="feCmd('${textareaId}','underline')" title="Subrayado"><u>U</u></button>
+    <button onclick="feCmd('${textareaId}','insertUnorderedList')" title="Lista">•</button>
+    <button onclick="feCmd('${textareaId}','insertOrderedList')" title="Lista num." style="font-weight:600">1.</button>
+    <button onclick="feCmd('${textareaId}','formatBlock','pre')" title="Código">&lt;/&gt;</button>
+    <button onclick="feLink('${textareaId}')" title="Link">🔗</button>
+    <button onclick="feImage('${textareaId}')" title="Imagen">🖼</button>
+    <button onclick="feVideo('${textareaId}')" title="Video YouTube">▶</button>
+    <button onclick="feLatex('${textareaId}')" title="Fórmula LaTeX">∑</button>
+  </div><div class="fe-content" id="${textareaId}_fe" contenteditable="true" data-placeholder="${placeholder}"></div>`;
+  const fe = document.getElementById(textareaId + '_fe');
+  fe.innerHTML = initial;
+  fe.addEventListener('paste', e => {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    const text = e.clipboardData.getData('text/plain');
+    if (html && html.includes('<') && /style|class|font|mso|<!--/.test(html)) {
+      document.execCommand('insertHTML', false, cleanForumPaste(html));
+    } else if (html && html.includes('<')) {
+      document.execCommand('insertHTML', false, html);
+    } else {
+      document.execCommand('insertText', false, text);
+    }
+  });
+  fe.addEventListener('input', () => { ta.value = fe.innerHTML; });
+  ta.value = fe.innerHTML;
+  return { wrap, fe, ta };
+}
+function feCmd(id, cmd, val) {
+  const fe = document.getElementById(id + '_fe');
+  if (!fe) return;
+  fe.focus();
+  if (cmd === 'formatBlock' && val === 'pre') {
+    document.execCommand('insertHTML', false, '<pre><code> </code></pre>');
+  } else {
+    document.execCommand(cmd, false, val || null);
+  }
+  fe.focus();
+  document.getElementById(id).value = fe.innerHTML;
+}
+function feLink(id) {
+  const url = prompt('URL del link:');
+  if (!url) return;
+  document.execCommand('createLink', false, url);
+  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+}
+function feLatex(id) {
+  const eq = prompt('Fórmula LaTeX (ej: E = mc^2):');
+  if (!eq) return;
+  document.execCommand('insertHTML', false, '$$' + eq + '$$');
+  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+}
+function feImage(id) {
+  const url = prompt('URL de la imagen (directa, ej: https://ejemplo.com/foto.jpg):');
+  if (!url) return;
+  document.execCommand('insertHTML', false, '<img src="' + url.replace(/"/g,'&quot;') + '" alt="Imagen" style="max-width:100%;border-radius:6px">');
+  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+}
+function feVideo(id) {
+  const url = prompt('URL del video de YouTube:');
+  if (!url) return;
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (!match) { alert('URL de YouTube no válida'); return; }
+  const vid = match[1];
+  document.execCommand('insertHTML', false, '<div class="eti-video-wrap"><iframe src="https://www.youtube.com/embed/' + vid + '" allowfullscreen></iframe></div>');
+  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+}
+function cleanForumPaste(html) {
+  return html.replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<svg[\s\S]*?<\/svg>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<(meta|link|style|script|object|iframe)[^>]*>/gi, '')
+    .replace(/<\/?(html|head|body|meta|link|style|script|object|iframe)[^>]*>/gi, '');
 }
 
 // Init
