@@ -126,6 +126,7 @@ window.copiarCodigo = copiarCodigo;
 window.togglePin = togglePin;
 window.eliminar = eliminar;
 window.eliminarPregunta = eliminarPregunta;
+window.togglePinPregunta = togglePinPregunta;
 
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
