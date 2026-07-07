@@ -366,6 +366,17 @@ async function eliminarAnuncio(id) {
   navigate('foro');
 }
 
+async function responder(id) {
+  const fe = document.getElementById('ansInput_fe');
+  const content = fe ? fe.innerHTML.trim() : document.getElementById('ansInput').value.trim();
+  if (!content || content === '<br>') { alert('Escribí una respuesta.'); return; }
+  const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
+  const { error } = await supabase.from('answers').insert({ question_id: id, content, author: name, user_id: currentUser?.id });
+  if (error) { alert('Error: ' + error.message); return; }
+  showToast('Respuesta publicada', 'success');
+  verPregunta(id);
+}
+
 async function marcarResuelta(id) {
   const { error } = await supabase.from('questions').update({ resolved: true }).eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
