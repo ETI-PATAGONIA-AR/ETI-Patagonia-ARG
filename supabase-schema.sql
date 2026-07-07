@@ -27,6 +27,7 @@ create table if not exists questions (
   author text not null,
   user_id uuid references auth.users(id),
   resolved boolean default false,
+  pinned boolean default false,
   created_at timestamptz default now()
 );
 
