@@ -241,16 +241,26 @@ async function renderForo() {
     .eq('status', 'published')
     .order('updated_at', { ascending: false });
 
-  const { data: questions, error } = await supabase.from('questions').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false });
-  if (error) { document.getElementById('forumContent').innerHTML = '<div class="alert alert-warning">Error</div>'; return; }
+  let questions, qError;
+  // Try with pinned column first, fallback to simple order
+  const qResult = await supabase.from('questions').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false });
+  if (qResult.error && qResult.error.message?.includes('column')) {
+    const fallback = await supabase.from('questions').select('*').order('created_at', { ascending: false });
+    questions = fallback.data; qError = fallback.error;
+  } else {
+    questions = qResult.data; qError = qResult.error;
+  }
+  if (qError) { document.getElementById('forumContent').innerHTML = '<div class="alert alert-warning">Error</div>'; return; }
   const grid = document.getElementById('forumContent');
   if (!questions?.length && !announcements?.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-chat-square-text"></i>No hay preguntas aún.</div>'; return; }
 
-  // Get answer counts
+  // Get answer counts (single query)
   let counts = {};
-  for (const q of questions || []) {
-    const { count } = await supabase.from('answers').select('*', { count: 'exact', head: true }).eq('question_id', q.id);
-    counts[q.id] = count || 0;
+  const qs = questions || [];
+  if (qs.length) {
+    const ids = qs.map(q => q.id);
+    const { data: allAnswers } = await supabase.from('answers').select('question_id').in('question_id', ids);
+    for (const a of allAnswers || []) counts[a.question_id] = (counts[a.question_id] || 0) + 1;
   }
 
   const isTeacher = currentUser?.email === 'prof.martintorres@educ.ar';
@@ -282,7 +292,7 @@ async function renderForo() {
         <div class="d-flex align-items-center gap-2">
           ${q.pinned ? '<i class="bi bi-pin-fill" style="color:var(--eti-dark)" title="Fijada"></i>' : ''}
           ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
-          ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#8a9aaa" onclick="event.stopPropagation();togglePinPregunta('${q.id}', ${q.pinned})" title="${q.pinned ? 'Desfijar' : 'Fijar'}"><i class="bi ${q.pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>` : ''}
+          ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#8a9aaa" onclick="event.stopPropagation();togglePinPregunta('${q.id}', ${!!q.pinned})" title="${q.pinned ? 'Desfijar' : 'Fijar'}"><i class="bi ${q.pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>` : ''}
           ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#dc3545" onclick="event.stopPropagation();eliminarPregunta('${q.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
         </div>
       </div>
