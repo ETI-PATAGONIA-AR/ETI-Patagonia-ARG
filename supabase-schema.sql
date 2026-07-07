@@ -7,7 +7,7 @@
 create table if not exists contents (
   id uuid default gen_random_uuid() primary key,
   title text not null default 'Sin título',
-  section text not null check (section in ('aplicaciones','proyectos','arduino','docentes','uplc','foro')),
+  section text not null check (section in ('aplicaciones','proyectos','arduino','docentes','uplc','foro','inicio')),
   content text default '',
   excerpt text default '',
   author text default '',
@@ -46,7 +46,12 @@ alter table contents enable row level security;
 alter table questions enable row level security;
 alter table answers enable row level security;
 
--- 5. POLÍTICAS DE SEGURIDAD
+-- 5. ÍNDICES PARA RENDIMIENTO (evita escaneos completos con RLS)
+create index if not exists idx_contents_section_status on contents(section, status);
+create index if not exists idx_answers_question_id on answers(question_id);
+create index if not exists idx_questions_created_at on questions(created_at desc);
+
+-- 6. POLÍTICAS DE SEGURIDAD
 
 -- CONTENIDOS:
 -- Cualquiera (incluso sin login) puede ver contenido publicado
@@ -85,6 +90,26 @@ drop policy if exists "Auth users can insert questions" on questions;
 create policy "Auth users can insert questions" on questions
   for insert to authenticated with check (auth.uid() = user_id);
 
+-- El profesor puede actualizar cualquier pregunta (para fijar)
+drop policy if exists "Teacher can update questions" on questions;
+create policy "Teacher can update questions" on questions
+  for update to authenticated using (auth.email() = 'prof.martintorres@educ.ar');
+
+-- El dueño puede actualizar su propia pregunta
+drop policy if exists "Owner can update own question" on questions;
+create policy "Owner can update own question" on questions
+  for update to authenticated using (auth.uid() = user_id);
+
+-- El profesor puede eliminar cualquier pregunta
+drop policy if exists "Teacher can delete questions" on questions;
+create policy "Teacher can delete questions" on questions
+  for delete to authenticated using (auth.email() = 'prof.martintorres@educ.ar');
+
+-- El dueño puede eliminar su propia pregunta
+drop policy if exists "Owner can delete own question" on questions;
+create policy "Owner can delete own question" on questions
+  for delete to authenticated using (auth.uid() = user_id);
+
 -- FORO (RESPUESTAS):
 -- Usuarios autenticados pueden ver todas las respuestas
 drop policy if exists "Anyone can view answers" on answers;
@@ -100,3 +125,8 @@ create policy "Auth users can insert answers" on answers
 drop policy if exists "Auth users can update own answers" on answers;
 create policy "Auth users can update own answers" on answers
   for update to authenticated using (auth.uid() = user_id);
+
+-- El dueño de la respuesta puede eliminarla
+drop policy if exists "Auth users can delete own answers" on answers;
+create policy "Auth users can delete own answers" on answers
+  for delete to authenticated using (auth.uid() = user_id);
