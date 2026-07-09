@@ -42,6 +42,8 @@
     .img-wrap .img-caption { display: block; font-size: .8rem; color: #7a8a9a; line-height: 1.4; margin-top: 6px; font-style: italic; text-align: center; }
     .eti-video-wrap { position: relative; width: 100%; max-width: 720px; margin: 1.5em auto; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; box-shadow: 0 4px 24px rgba(0,0,0,.15); }
     .eti-video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    .eti-wokwi-wrap { position: relative; width: 100%; max-width: 800px; margin: 1.5em auto; border-radius: 12px; overflow: hidden; background: #f0f2f5; aspect-ratio: 16 / 9; box-shadow: 0 4px 24px rgba(0,0,0,.1); border: 2px solid #e0e4ea; }
+    .eti-wokwi-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
     .question-card { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: .6rem; border: 1px solid #e6edf4; cursor: pointer; transition: box-shadow .2s; }
     .question-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
     .question-card .q-title { font-weight: 600; color: var(--eti-dark); }
@@ -513,6 +515,7 @@ function makeRichEditor(textareaId) {
     <button onclick="feLink('${textareaId}')" title="Link">🔗</button>
     <button onclick="feImage('${textareaId}')" title="Imagen">🖼</button>
     <button onclick="feVideo('${textareaId}')" title="Video YouTube">▶</button>
+    <button onclick="feWokwi('${textareaId}')" title="Simulación Arduino (Wokwi)" style="color:#e74c3c">🔬</button>
     <button onclick="feLatex('${textareaId}')" title="Fórmula LaTeX">∑</button>
   </div><div class="fe-content" id="${textareaId}_fe" contenteditable="true" data-placeholder="${placeholder}"></div>`;
   const fe = document.getElementById(textareaId + '_fe');
@@ -570,6 +573,15 @@ function feVideo(id) {
   if (!match) { alert('URL de YouTube no válida'); return; }
   const vid = match[1];
   document.execCommand('insertHTML', false, '<div class="eti-video-wrap"><iframe src="https://www.youtube.com/embed/' + vid + '" allowfullscreen></iframe></div>');
+  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+}
+function feWokwi(id) {
+  const input = prompt('Pegá la URL o ID del proyecto de Wokwi:\nhttps://wokwi.com/projects/1234567890');
+  if (!input) return;
+  const m = input.match(/wokwi\.com\/projects\/(\d+)/);
+  const id2 = m ? m[1] : (/^\d+$/.test(input.trim()) ? input.trim() : null);
+  if (!id2) { alert('URL de Wokwi no válida'); return; }
+  document.execCommand('insertHTML', false, '<div class="eti-wokwi-wrap"><iframe src="https://wokwi.com/projects/' + id2 + '?hide=menu,sidebar" allowfullscreen></iframe></div>');
   document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
 }
 function cleanForumPaste(html) {
