@@ -128,6 +128,7 @@ window.copiarCodigo = copiarCodigo;
 window.togglePin = togglePin;
 window.eliminar = eliminar;
 window.eliminarPregunta = eliminarPregunta;
+window.togglePinPregunta = togglePinPregunta;
 
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -234,10 +235,10 @@ async function renderForo() {
     </div>
     <div id="forumContent"><div class="text-center py-5"><div class="spinner-border text-dark" role="status"></div></div></div>`;
 
-  const { data: questions, error } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
+  const { data: questions, error } = await supabase.from('questions').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false });
   if (error) { document.getElementById('forumContent').innerHTML = '<div class="alert alert-warning">Error</div>'; return; }
   const grid = document.getElementById('forumContent');
-  if (!questions?.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-chat-square-text"></i>No hay preguntas aún.</div>'; return; }
+  if (!questions?.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-chat-square-text"></i>No hay preguntas a\u00fan.</div>'; return; }
 
   // Get answer counts
   let counts = {};
@@ -251,11 +252,12 @@ async function renderForo() {
     <div class="question-card" onclick="verPregunta('${q.id}')">
       <div class="d-flex justify-content-between align-items-start">
         <div>
-          <div class="q-title">${esc(q.title)}</div>
-          <div class="q-meta mt-1" style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span> · ${counts[q.id]} respuestas</div>
+          <div class="q-title">${esc(q.title)} ${q.pinned ? '<i class="bi bi-pin-fill" style="color:var(--eti-dark);font-size:.75rem"></i>' : ''}</div>
+          <div class="q-meta mt-1" style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(q.author)} \u00b7 ${fecha(q.created_at)} \u00b7 <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span> \u00b7 ${counts[q.id]} respuestas</div>
         </div>
         <div class="d-flex align-items-center gap-2">
           ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+          ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#8a9aaa" onclick="event.stopPropagation();togglePinPregunta('${q.id}', ${q.pinned})" title="${q.pinned ? 'Desfijar' : 'Fijar'}"><i class="bi ${q.pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>` : ''}
           ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#dc3545" onclick="event.stopPropagation();eliminarPregunta('${q.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
         </div>
       </div>
@@ -275,9 +277,10 @@ async function verPregunta(id) {
     <a href="javascript:void(0)" onclick="navigate('foro')" class="text-decoration-none small mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i>Volver</a>
     <div class="card p-3 mb-3" style="border-radius:14px;border:1px solid #e6edf4">
       <div class="d-flex justify-content-between">
-        <h5 class="fw-bold" style="color:var(--eti-dark)">${esc(q.title)}</h5>
+        <h5 class="fw-bold" style="color:var(--eti-dark)">${esc(q.title)} ${q.pinned ? '<i class="bi bi-pin-fill" style="color:var(--eti-dark);font-size:.85rem"></i>' : ''}</h5>
         <div class="d-flex align-items-center gap-2">
           ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
+          ${isTeacher ? `<button class="btn btn-sm border-0" style="color:#8a9aaa" onclick="togglePinPregunta('${q.id}', ${q.pinned})" title="${q.pinned ? 'Desfijar' : 'Fijar'}"><i class="bi ${q.pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>` : ''}
           ${isTeacher ? `<button class="btn btn-sm border-0" style="color:#dc3545" onclick="eliminarPregunta('${q.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
         </div>
       </div>
@@ -408,10 +411,15 @@ async function eliminar(id) {
 }
 
 async function eliminarPregunta(id) {
-  if (!confirm('¿Eliminar esta pregunta y todas sus respuestas?')) return;
+  if (!confirm('\u00bfEliminar esta pregunta y todas sus respuestas?')) return;
   const { error } = await supabase.from('questions').delete().eq('id', id);
   if (error) { alert('Error: ' + error.message); return; }
   showToast('Pregunta eliminada', 'success');
+  navigate('foro');
+}
+async function togglePinPregunta(id, current) {
+  const { error } = await supabase.from('questions').update({ pinned: !current }).eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
   navigate('foro');
 }
 
