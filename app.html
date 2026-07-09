@@ -471,7 +471,7 @@ function feCmd2(id, cmd) {
     case 'underline': wrapSurround(id, 'u'); break;
     case 'insertUnorderedList': wrapList(id, 'ul'); break;
     case 'insertOrderedList': wrapList(id, 'ol'); break;
-    case 'code': wrapInsert(id, '<pre><code> </code></pre>'); break;
+    case 'code': feCode(id); break;
     case 'link': feLink(id); break;
     case 'image': feImage(id); break;
     case 'video': feVideo(id); break;
@@ -598,6 +598,28 @@ function feLatex(id) {
   var eq = prompt('F\u00f3rmula LaTeX (ej: E = mc^2):');
   if (!eq) return;
   wrapInsert(id, '$$' + eq + '$$');
+}
+function feCode(id) {
+  var fe = document.getElementById(id + '_fe');
+  fe.focus();
+  var sel = window.getSelection();
+  if (!sel.rangeCount) { sel.selectAllChildren(fe); sel.collapseToEnd(); }
+  var r = sel.getRangeAt(0);
+  var pre = document.createElement('pre');
+  var code = document.createElement('code');
+  if (!r.collapsed) {
+    code.appendChild(r.extractContents());
+    r.deleteContents();
+  } else {
+    code.textContent = ' ';
+  }
+  pre.appendChild(code);
+  r.insertNode(pre);
+  r.selectNodeContents(code);
+  r.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(r);
+  document.getElementById(id).value = fe.innerHTML;
 }
 function cleanForumPaste(html) {
   return html.replace(/<script[\s\S]*?<\/script>/gi, '')
