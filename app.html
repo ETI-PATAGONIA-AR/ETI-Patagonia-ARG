@@ -538,8 +538,15 @@ function wrapInsert(id, html) {
   if (!sel.rangeCount) { fe.focus(); sel.selectAllChildren(fe); sel.collapseToEnd(); }
   sel.getRangeAt(0).deleteContents();
   var frag = fe.ownerDocument.createRange().createContextualFragment(html);
+  var last = frag.lastChild;
   sel.getRangeAt(0).insertNode(frag);
-  sel.getRangeAt(0).collapse(false);
+  if (last) {
+    var r = sel.getRangeAt(0);
+    r.setStartAfter(last);
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
   fe.focus();
   document.getElementById(id).value = fe.innerHTML;
 }
@@ -608,17 +615,19 @@ function feCode(id) {
   var pre = document.createElement('pre');
   var code = document.createElement('code');
   if (!r.collapsed) {
-    code.appendChild(r.extractContents());
-    r.deleteContents();
+    var txt = r.extractContents();
+    code.appendChild(txt);
   } else {
-    code.textContent = ' ';
+    code.textContent = '\n';
   }
   pre.appendChild(code);
   r.insertNode(pre);
-  r.selectNodeContents(code);
-  r.collapse(false);
+  var nr = document.createRange();
+  nr.selectNodeContents(code);
+  nr.collapse(false);
   sel.removeAllRanges();
-  sel.addRange(r);
+  sel.addRange(nr);
+  fe.focus();
   document.getElementById(id).value = fe.innerHTML;
 }
 function cleanForumPaste(html) {
