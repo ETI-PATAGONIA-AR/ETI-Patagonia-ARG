@@ -280,7 +280,7 @@ async function verPregunta(id) {
         </div>
       </div>
       <p class="text-muted small"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span></p>
-      <div>${q.content || ''}</div>
+      <div>${procesarContenido(q.content || '')}</div>
     </div>
     <h6 class="fw-bold mb-2">Respuestas (${answers?.length||0})</h6>
     <div id="answersContainer">
