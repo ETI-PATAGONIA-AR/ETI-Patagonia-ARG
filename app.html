@@ -57,6 +57,7 @@
     .fe-toolbar button:hover { background: #e0e6ee; }
     .fe-content { min-height: 100px; max-height: 320px; overflow-y: auto; padding: 10px 12px; font-size: .9rem; line-height: 1.6; outline: none; }
     .fe-content:empty:before { content: attr(data-placeholder); color: #b0bec5; pointer-events: none; }
+    .fe-content pre { background: #1e2a3a; color: #e4eaf0; padding: 10px 14px; border-radius: 8px; margin: .5em 0; font-size: .82rem; }
   </style>
 </head>
 <body>
@@ -537,15 +538,19 @@ function wrapInsert(id, html) {
   var sel = window.getSelection();
   if (!sel.rangeCount) { fe.focus(); sel.selectAllChildren(fe); sel.collapseToEnd(); }
   sel.getRangeAt(0).deleteContents();
-  var frag = fe.ownerDocument.createRange().createContextualFragment(html);
-  var last = frag.lastChild;
-  sel.getRangeAt(0).insertNode(frag);
-  if (last) {
-    var r = sel.getRangeAt(0);
-    r.setStartAfter(last);
-    r.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(r);
+  var before = fe.innerHTML;
+  document.execCommand('insertHTML', false, html);
+  if (fe.innerHTML === before) {
+    var frag = fe.ownerDocument.createRange().createContextualFragment(html);
+    var last = frag.lastChild;
+    sel.getRangeAt(0).insertNode(frag);
+    if (last) {
+      var r = sel.getRangeAt(0);
+      r.setStartAfter(last);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
   }
   fe.focus();
   document.getElementById(id).value = fe.innerHTML;
@@ -607,28 +612,12 @@ function feLatex(id) {
   wrapInsert(id, '$$' + eq + '$$');
 }
 function feCode(id) {
-  var fe = document.getElementById(id + '_fe');
-  fe.focus();
   var sel = window.getSelection();
-  if (!sel.rangeCount) { sel.selectAllChildren(fe); sel.collapseToEnd(); }
-  var r = sel.getRangeAt(0);
-  var pre = document.createElement('pre');
-  var code = document.createElement('code');
-  if (!r.collapsed) {
-    var txt = r.extractContents();
-    code.appendChild(txt);
-  } else {
-    code.textContent = '\n';
+  var txt = '';
+  if (sel.rangeCount && document.getElementById(id + '_fe').contains(sel.anchorNode) && !sel.getRangeAt(0).collapsed) {
+    txt = sel.toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-  pre.appendChild(code);
-  r.insertNode(pre);
-  var nr = document.createRange();
-  nr.selectNodeContents(code);
-  nr.collapse(false);
-  sel.removeAllRanges();
-  sel.addRange(nr);
-  fe.focus();
-  document.getElementById(id).value = fe.innerHTML;
+  wrapInsert(id, '<pre><code>' + txt + '</code></pre>');
 }
 function cleanForumPaste(html) {
   return html.replace(/<script[\s\S]*?<\/script>/gi, '')
