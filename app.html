@@ -42,8 +42,7 @@
     .img-wrap .img-caption { display: block; font-size: .8rem; color: #7a8a9a; line-height: 1.4; margin-top: 6px; font-style: italic; text-align: center; }
     .eti-video-wrap { position: relative; width: 100%; max-width: 720px; margin: 1.5em auto; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; box-shadow: 0 4px 24px rgba(0,0,0,.15); }
     .eti-video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
-    .eti-wokwi-wrap { position: relative; width: 100%; max-width: 800px; margin: 1.5em auto; border-radius: 12px; overflow: hidden; background: #f0f2f5; aspect-ratio: 16 / 9; box-shadow: 0 4px 24px rgba(0,0,0,.1); border: 2px solid #e0e4ea; }
-    .eti-wokwi-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    .eti-wokwi-wrap { position: relative; width: 100%; max-width: 800px; margin: 1.5em auto; border-radius: 12px; overflow: hidden; border: 1px solid #e6edf4; aspect-ratio: 16 / 9; }
     .question-card { background: #fff; border-radius: 12px; padding: 1rem 1.2rem; margin-bottom: .6rem; border: 1px solid #e6edf4; cursor: pointer; transition: box-shadow .2s; }
     .question-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
     .question-card .q-title { font-weight: 600; color: var(--eti-dark); }
@@ -52,14 +51,12 @@
     .empty-state { text-align: center; padding: 3rem 1rem; color: #9aaaba; }
     .empty-state i { font-size: 3rem; display: block; margin-bottom: .8rem; opacity: .4; }
     .page-title { font-weight: 700; color: var(--eti-dark); }
-    .fe-wrap { border:1px solid #d0d8e4;border-radius:10px;overflow:hidden;background:#fff }
-    .fe-toolbar { display:flex;gap:2px;padding:5px 8px;background:#f5f7fa;border-bottom:1px solid #e2e8f0;flex-wrap:wrap }
-    .fe-toolbar button { width:28px;height:26px;border:none;background:transparent;border-radius:4px;color:#4a5a6a;cursor:pointer;font-size:.78rem;display:flex;align-items:center;justify-content:center;transition:background .15s }
-    .fe-toolbar button:hover { background:#e0e6ef }
-    .fe-content { padding:10px 12px;min-height:60px;outline:none;font-size:.85rem;line-height:1.6 }
-    .fe-content:empty::before { content:attr(data-placeholder);color:#b0bcc8;font-style:italic }
-    .fe-content pre { background:#1e2a3a;color:#e4eaf0;padding:10px 14px;border-radius:6px;overflow-x:auto;font-size:.78rem;margin:6px 0 }
-    .fe-content img { max-width:100%;border-radius:6px;margin:6px 0 }
+    .fe-wrap { border: 1px solid #d0d8e4; border-radius: 10px; overflow: hidden; background: #fff; margin-bottom: .5rem; }
+    .fe-toolbar { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 6px; background: #f5f7fa; border-bottom: 1px solid #e6edf4; }
+    .fe-toolbar button { background: none; border: none; padding: 4px 10px; font-size: .8rem; color: #4a5a6a; cursor: pointer; border-radius: 4px; transition: background .15s; }
+    .fe-toolbar button:hover { background: #e0e6ee; }
+    .fe-content { min-height: 100px; max-height: 320px; overflow-y: auto; padding: 10px 12px; font-size: .9rem; line-height: 1.6; outline: none; }
+    .fe-content:empty:before { content: attr(data-placeholder); color: #b0bec5; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -128,7 +125,6 @@ window.copiarCodigo = copiarCodigo;
 window.togglePin = togglePin;
 window.eliminar = eliminar;
 window.eliminarPregunta = eliminarPregunta;
-window.togglePinPregunta = togglePinPregunta;
 
 async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
@@ -235,57 +231,20 @@ async function renderForo() {
     </div>
     <div id="forumContent"><div class="text-center py-5"><div class="spinner-border text-dark" role="status"></div></div></div>`;
 
-  // Fetch pinned announcements (contents with section='foro' and pinned=true)
-  const { data: announcements } = await supabase
-    .from('contents')
-    .select('*')
-    .eq('section', 'foro')
-    .eq('pinned', true)
-    .eq('status', 'published')
-    .order('updated_at', { ascending: false });
-
-  let questions, qError;
-  // Try with pinned column first, fallback to simple order
-  const qResult = await supabase.from('questions').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false });
-  if (qResult.error && qResult.error.message?.includes('column')) {
-    const fallback = await supabase.from('questions').select('*').order('created_at', { ascending: false });
-    questions = fallback.data; qError = fallback.error;
-  } else {
-    questions = qResult.data; qError = qResult.error;
-  }
-  if (qError) { document.getElementById('forumContent').innerHTML = '<div class="alert alert-warning">Error</div>'; return; }
+  const { data: questions, error } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
+  if (error) { document.getElementById('forumContent').innerHTML = '<div class="alert alert-warning">Error</div>'; return; }
   const grid = document.getElementById('forumContent');
-  if (!questions?.length && !announcements?.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-chat-square-text"></i>No hay preguntas aún.</div>'; return; }
+  if (!questions?.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-chat-square-text"></i>No hay preguntas aún.</div>'; return; }
 
-  // Get answer counts (single query)
+  // Get answer counts
   let counts = {};
-  const qs = questions || [];
-  if (qs.length) {
-    const ids = qs.map(q => q.id);
-    const { data: allAnswers } = await supabase.from('answers').select('question_id').in('question_id', ids);
-    for (const a of allAnswers || []) counts[a.question_id] = (counts[a.question_id] || 0) + 1;
+  for (const q of questions) {
+    const { count } = await supabase.from('answers').select('*', { count: 'exact', head: true }).eq('question_id', q.id);
+    counts[q.id] = count || 0;
   }
 
   const isTeacher = currentUser?.email === 'prof.martintorres@educ.ar';
-
-  let html = '';
-
-  // Pinned announcements (from editor)
-  if (announcements?.length) {
-    for (const a of announcements) {
-      html += `<div class="question-card" style="border-left:3px solid var(--eti-dark);background:#f5f7fa" onclick="verAnuncio('${a.id}')">
-        <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <div class="q-title"><i class="bi bi-pin-fill me-1" style="color:var(--eti-dark)"></i>${esc(a.title)}</div>
-            <div class="q-meta mt-1" style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(a.author||'Admin')} · ${fecha(a.updated_at)} · <span class="badge bg-dark text-white">📌 Aviso</span></div>
-          </div>
-        </div>
-      </div>`;
-    }
-  }
-
-  // Regular questions
-  html += (questions || []).map(q => `
+  grid.innerHTML = questions.map(q => `
     <div class="question-card" onclick="verPregunta('${q.id}')">
       <div class="d-flex justify-content-between align-items-start">
         <div>
@@ -293,15 +252,12 @@ async function renderForo() {
           <div class="q-meta mt-1" style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span> · ${counts[q.id]} respuestas</div>
         </div>
         <div class="d-flex align-items-center gap-2">
-          ${q.pinned ? '<i class="bi bi-pin-fill" style="color:var(--eti-dark)" title="Fijada"></i>' : ''}
           ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
-          ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#8a9aaa" onclick="event.stopPropagation();togglePinPregunta('${q.id}', ${!!q.pinned})" title="${q.pinned ? 'Desfijar' : 'Fijar'}"><i class="bi ${q.pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>` : ''}
           ${isTeacher ? `<button class="btn btn-sm p-0 border-0" style="color:#dc3545" onclick="event.stopPropagation();eliminarPregunta('${q.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
         </div>
       </div>
     </div>
   `).join('');
-  grid.innerHTML = html;
 }
 
 async function verPregunta(id) {
@@ -318,65 +274,34 @@ async function verPregunta(id) {
       <div class="d-flex justify-content-between">
         <h5 class="fw-bold" style="color:var(--eti-dark)">${esc(q.title)}</h5>
         <div class="d-flex align-items-center gap-2">
-          ${q.pinned ? '<span class="badge bg-dark text-white">📌 Fijada</span>' : ''}
           ${q.resolved ? '<span class="badge-resolved"><i class="bi bi-check-circle me-1"></i>Resuelta</span>' : ''}
-          ${isTeacher ? `<button class="btn btn-sm border-0" style="color:#8a9aaa" onclick="togglePinPregunta('${q.id}', ${q.pinned})" title="${q.pinned ? 'Desfijar' : 'Fijar'}"><i class="bi ${q.pinned ? 'bi-pin-fill' : 'bi-pin'}"></i></button>` : ''}
           ${isTeacher ? `<button class="btn btn-sm border-0" style="color:#dc3545" onclick="eliminarPregunta('${q.id}')" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
         </div>
       </div>
       <p class="text-muted small"><i class="bi bi-person me-1"></i>${esc(q.author)} · ${fecha(q.created_at)} · <span class="badge bg-light text-dark">${SEC_LABEL[q.section]||q.section}</span></p>
-      <div class="viewer-content">${procesarContenido(q.content || '')}</div>
+      <div>${q.content || ''}</div>
     </div>
     <h6 class="fw-bold mb-2">Respuestas (${answers?.length||0})</h6>
     <div id="answersContainer">
       ${!answers?.length ? '<p class="text-muted small">Sin respuestas aún.</p>' :
         answers.map(a => `<div class="answer-card">
           <div style="font-size:.75rem;color:#8a9aaa"><i class="bi bi-person me-1"></i>${esc(a.author)} · ${fecha(a.created_at)}</div>
-          <div class="mt-1 viewer-content">${procesarContenido(a.content || '')}</div>
+          <div class="mt-1">${esc(a.content)}</div>
         </div>`).join('')}
     </div>
     <div class="mt-3">
-      <textarea class="form-control" id="ansInput" rows="2" placeholder="Escribí tu respuesta..." style="border-radius:10px;font-size:.85rem;display:none"></textarea>
+      <textarea class="form-control" id="ansInput" rows="2" placeholder="Escribí tu respuesta..." style="border-radius:10px;font-size:.85rem"></textarea>
       <button class="btn btn-dark btn-sm mt-2" onclick="responder('${q.id}')"><i class="bi bi-reply me-1"></i>Responder</button>
       ${isTeacher && !q.resolved ? `<button class="btn btn-outline-success btn-sm mt-2 ms-2" onclick="marcarResuelta('${q.id}')"><i class="bi bi-check-circle me-1"></i>Marcar resuelta</button>` : ''}
     </div>`;
-  setTimeout(() => makeRichEditor('ansInput'), 50);
-}
-
-async function verAnuncio(id) {
-  const container = document.getElementById('appContainer');
-  const { data: a, error } = await supabase.from('contents').select('*').eq('id', id).single();
-  if (error || !a) { container.innerHTML = '<div class="alert alert-warning">No encontrado</div>'; return; }
-  const isTeacher = currentUser?.email === 'prof.martintorres@educ.ar';
-  container.innerHTML = `
-    <a href="javascript:void(0)" onclick="navigate('foro')" class="text-decoration-none small mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i>Volver al foro</a>
-    <div class="card p-3 mb-3" style="border-radius:14px;border:1px solid #e6edf4;border-left:3px solid var(--eti-dark)">
-      <div class="d-flex justify-content-between">
-        <h5 class="fw-bold" style="color:var(--eti-dark)"><i class="bi bi-pin-fill me-1"></i>${esc(a.title)}</h5>
-        <div>
-          ${isTeacher ? `<button class="btn btn-sm border-0" style="color:#dc3545" onclick="if(confirm('¿Eliminar este aviso?')){eliminarAnuncio('${a.id}')}" title="Eliminar"><i class="bi bi-trash"></i></button>` : ''}
-        </div>
-      </div>
-      <p class="text-muted small"><i class="bi bi-person me-1"></i>${esc(a.author||'Admin')} · ${fecha(a.updated_at)} · <span class="badge bg-dark text-white">📌 Aviso</span></p>
-      <div class="viewer-content">${procesarContenido(a.content || '')}</div>
-    </div>`;
-}
-
-async function eliminarAnuncio(id) {
-  const { error } = await supabase.from('contents').update({ status: 'draft' }).eq('id', id);
-  if (error) { alert('Error: ' + error.message); return; }
-  showToast('Aviso eliminado', 'success');
-  navigate('foro');
 }
 
 async function responder(id) {
-  const fe = document.getElementById('ansInput_fe');
-  const content = fe ? fe.innerHTML.trim() : document.getElementById('ansInput').value.trim();
-  if (!content || content === '<br>') { alert('Escribí una respuesta.'); return; }
+  const val = document.getElementById('ansInput').value.trim();
+  if (!val) return;
   const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
-  const { error } = await supabase.from('answers').insert({ question_id: id, content, author: name, user_id: currentUser?.id });
+  const { error } = await supabase.from('answers').insert({ question_id: id, content: val, author: name, user_id: currentUser?.id });
   if (error) { alert('Error: ' + error.message); return; }
-  showToast('Respuesta publicada', 'success');
   verPregunta(id);
 }
 
@@ -391,18 +316,17 @@ function nuevaPregunta() {
     <a href="javascript:void(0)" onclick="navigate('foro')" class="text-decoration-none small mb-3 d-inline-block"><i class="bi bi-arrow-left me-1"></i>Volver</a>
     <div class="card p-4" style="border-radius:14px;border:1px solid #e6edf4;max-width:700px">
       <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle me-2"></i>Nueva Pregunta</h5>
-      <div class="mb-3"><label class="form-label small fw-semibold">Título</label><input type="text" class="form-control" id="qTitle"></div>
-      <div class="mb-3"><label class="form-label small fw-semibold">Descripción</label><textarea class="form-control" id="qContent" rows="4" style="display:none"></textarea></div>
+      <div class="mb-3"><label class="form-label small fw-semibold">T\u00edtulo</label><input type="text" class="form-control" id="qTitle"></div>
+      <div class="mb-3"><label class="form-label small fw-semibold">Descripci\u00f3n</label><textarea class="form-control" id="qContent" rows="4" style="display:none"></textarea></div>
       <button class="btn btn-dark" onclick="enviarPregunta()"><i class="bi bi-send me-1"></i>Publicar</button>
     </div>`;
-  setTimeout(() => makeRichEditor('qContent'), 50);
+  setTimeout(function() { makeRichEditor('qContent'); }, 50);
 }
 
 async function enviarPregunta() {
   const title = document.getElementById('qTitle').value.trim();
   const section = 'foro';
-  const fe = document.getElementById('qContent_fe');
-  const content = fe ? fe.innerHTML.trim() : document.getElementById('qContent').value.trim();
+  const content = document.getElementById('qContent').value.trim();
   if (!title) { alert('El título es obligatorio.'); return; }
   const name = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Anónimo';
   const { error } = await supabase.from('questions').insert({ title, section, content, author: name, user_id: currentUser?.id });
@@ -480,13 +404,6 @@ async function eliminar(id) {
   renderDashboard();
 }
 
-async function togglePinPregunta(id, current) {
-  const { error } = await supabase.from('questions').update({ pinned: !current }).eq('id', id);
-  if (error) { alert('Error: ' + error.message); return; }
-  showToast(current ? 'Desfijada' : '📌 Fijada', 'success');
-  navigate('foro');
-}
-
 async function eliminarPregunta(id) {
   if (!confirm('¿Eliminar esta pregunta y todas sus respuestas?')) return;
   const { error } = await supabase.from('questions').delete().eq('id', id);
@@ -495,7 +412,7 @@ async function eliminarPregunta(id) {
   navigate('foro');
 }
 
-// ── Rich text editor for forum ──
+// ── RICH EDITOR (forum) ──
 function makeRichEditor(textareaId) {
   const ta = document.getElementById(textareaId);
   if (!ta) return null;
@@ -505,84 +422,182 @@ function makeRichEditor(textareaId) {
   const initial = ta.value || '';
   ta.style.display = 'none';
   ta.parentNode.insertBefore(wrap, ta);
-  wrap.innerHTML = `<div class="fe-toolbar">
-    <button onclick="feCmd('${textareaId}','bold')" title="Negrita"><b>B</b></button>
-    <button onclick="feCmd('${textareaId}','italic')" title="Cursiva"><i>I</i></button>
-    <button onclick="feCmd('${textareaId}','underline')" title="Subrayado"><u>U</u></button>
-    <button onclick="feCmd('${textareaId}','insertUnorderedList')" title="Lista">•</button>
-    <button onclick="feCmd('${textareaId}','insertOrderedList')" title="Lista num." style="font-weight:600">1.</button>
-    <button onclick="feCmd('${textareaId}','formatBlock','pre')" title="Código">&lt;/&gt;</button>
-    <button onclick="feLink('${textareaId}')" title="Link">🔗</button>
-    <button onclick="feImage('${textareaId}')" title="Imagen">🖼</button>
-    <button onclick="feVideo('${textareaId}')" title="Video YouTube">▶</button>
-    <button onclick="feWokwi('${textareaId}')" title="Simulación Arduino (Wokwi)" style="color:#e74c3c">🔬</button>
-    <button onclick="feLatex('${textareaId}')" title="Fórmula LaTeX">∑</button>
-  </div><div class="fe-content" id="${textareaId}_fe" contenteditable="true" data-placeholder="${placeholder}"></div>`;
+  wrap.innerHTML = '<div class="fe-toolbar">'
+    + '<button data-cmd="bold" title="Negrita"><b>B</b></button>'
+    + '<button data-cmd="italic" title="Cursiva"><i>I</i></button>'
+    + '<button data-cmd="underline" title="Subrayado"><u>U</u></button>'
+    + '<button data-cmd="insertUnorderedList" title="Lista">&bull;</button>'
+    + '<button data-cmd="insertOrderedList" title="Lista num." style="font-weight:600">1.</button>'
+    + '<button data-cmd="code" title="C&oacute;digo">&lt;/&gt;</button>'
+    + '<button data-cmd="link" title="Link">&#128279;</button>'
+    + '<button data-cmd="image" title="Imagen">&#128248;</button>'
+    + '<button data-cmd="video" title="Video YouTube">&#9654;</button>'
+    + '<button data-cmd="wokwi" title="Simulaci&oacute;n Arduino (Wokwi)" style="color:#e74c3c">&#128300;</button>'
+    + '<button data-cmd="latex" title="F&oacute;rmula LaTeX">&sum;</button>'
+    + '</div><div class="fe-content" id="' + textareaId + '_fe" contenteditable="true" data-placeholder="' + placeholder + '"></div>';
   const fe = document.getElementById(textareaId + '_fe');
   fe.innerHTML = initial;
-  fe.addEventListener('paste', e => {
+  fe.addEventListener('paste', function(e) {
     e.preventDefault();
-    const html = e.clipboardData.getData('text/html');
-    const text = e.clipboardData.getData('text/plain');
-    if (html && html.includes('<') && /style|class|font|mso|<!--/.test(html)) {
-      document.execCommand('insertHTML', false, cleanForumPaste(html));
-    } else if (html && html.includes('<')) {
-      document.execCommand('insertHTML', false, html);
+    var html = e.clipboardData.getData('text/html');
+    var text = e.clipboardData.getData('text/plain');
+    if (html && html.indexOf('<') !== -1 && /style|class|font|mso|<!--/.test(html)) {
+      wrapInsert(textareaId, cleanForumPaste(html));
+    } else if (html && html.indexOf('<') !== -1) {
+      wrapInsert(textareaId, html);
     } else {
-      document.execCommand('insertText', false, text);
+      wrapInsert(textareaId, escHtml(text));
     }
   });
-  fe.addEventListener('input', () => { ta.value = fe.innerHTML; });
+  fe.addEventListener('input', function() { ta.value = fe.innerHTML; });
   ta.value = fe.innerHTML;
-  return { wrap, fe, ta };
+  wrap.querySelector('.fe-toolbar').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-cmd]');
+    if (!btn) return;
+    e.preventDefault();
+    feCmd2(textareaId, btn.getAttribute('data-cmd'));
+  });
+  return { wrap: wrap, fe: fe, ta: ta };
 }
-function feCmd(id, cmd, val) {
-  const fe = document.getElementById(id + '_fe');
+function feCmd2(id, cmd) {
+  var fe = document.getElementById(id + '_fe');
   if (!fe) return;
   fe.focus();
-  if (cmd === 'formatBlock' && val === 'pre') {
-    document.execCommand('insertHTML', false, '<pre><code> </code></pre>');
-  } else {
-    document.execCommand(cmd, false, val || null);
+  var sel = window.getSelection();
+  if (!sel.rangeCount) { sel.selectAllChildren(fe); sel.collapseToEnd(); }
+  switch (cmd) {
+    case 'bold': wrapSurround(id, 'b'); break;
+    case 'italic': wrapSurround(id, 'i'); break;
+    case 'underline': wrapSurround(id, 'u'); break;
+    case 'insertUnorderedList': wrapList(id, 'ul'); break;
+    case 'insertOrderedList': wrapList(id, 'ol'); break;
+    case 'code': wrapInsert(id, '<pre><code> </code></pre>'); break;
+    case 'link': feLink(id); break;
+    case 'image': feImage(id); break;
+    case 'video': feVideo(id); break;
+    case 'wokwi': feWokwi(id); break;
+    case 'latex': feLatex(id); break;
   }
+}
+function wrapSurround(id, tag) {
+  var fe = document.getElementById(id + '_fe');
+  var sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  var r = sel.getRangeAt(0);
+  if (r.collapsed) {
+    var t = document.createElement(tag);
+    t.textContent = ' ';
+    r.insertNode(t);
+    r.setStartAfter(t);
+    r.collapse(true);
+  } else {
+    var t = document.createElement(tag);
+    try { r.surroundContents(t); } catch(e) {
+      var h = r.extractContents();
+      t.appendChild(h);
+      r.insertNode(t);
+    }
+  }
+  sel.removeAllRanges();
+  sel.addRange(r);
+  document.getElementById(id).value = fe.innerHTML;
+}
+function wrapList(id, type) {
+  var fe = document.getElementById(id + '_fe');
+  var sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  var r = sel.getRangeAt(0);
+  var p = r.commonAncestorContainer;
+  if (p.nodeType === 3) p = p.parentElement;
+  p = p.closest ? p.closest('li,p,div') : null;
+  if (p && p.parentElement && p.parentElement.tagName === (type === 'ul' ? 'OL' : 'UL')) {
+    var parent = p.parentElement;
+    var idx = Array.prototype.indexOf.call(parent.children, p);
+    var rest = [];
+    while (parent.children.length > idx) rest.push(parent.lastChild);
+    var newList = document.createElement(type);
+    var li = document.createElement('li');
+    li.innerHTML = '<br>';
+    newList.appendChild(li);
+    parent.parentNode.insertBefore(newList, parent.nextSibling);
+    for (var i = rest.length - 1; i >= 0; i--) newList.appendChild(rest[i]);
+  } else {
+    var list = document.createElement(type);
+    var li = document.createElement('li');
+    if (!r.collapsed) { li.appendChild(r.extractContents()); }
+    else { li.innerHTML = '<br>'; }
+    list.appendChild(li);
+    r.deleteContents();
+    r.insertNode(list);
+  }
+  document.getElementById(id).value = fe.innerHTML;
+}
+function wrapInsert(id, html) {
+  var fe = document.getElementById(id + '_fe');
+  var sel = window.getSelection();
+  if (!sel.rangeCount) { fe.focus(); sel.selectAllChildren(fe); sel.collapseToEnd(); }
+  sel.getRangeAt(0).deleteContents();
+  var frag = fe.ownerDocument.createRange().createContextualFragment(html);
+  sel.getRangeAt(0).insertNode(frag);
+  sel.getRangeAt(0).collapse(false);
   fe.focus();
   document.getElementById(id).value = fe.innerHTML;
 }
-function feLink(id) {
-  const url = prompt('URL del link:');
-  if (!url) return;
-  document.execCommand('createLink', false, url);
-  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
-function feLatex(id) {
-  const eq = prompt('Fórmula LaTeX (ej: E = mc^2):');
-  if (!eq) return;
-  document.execCommand('insertHTML', false, '$$' + eq + '$$');
-  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+function feLink(id) {
+  var url = prompt('URL del link:');
+  if (!url) return;
+  var fe = document.getElementById(id + '_fe');
+  fe.focus();
+  var sel = window.getSelection();
+  if (sel.rangeCount && !sel.getRangeAt(0).collapsed) {
+    var r = sel.getRangeAt(0);
+    var a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    try { r.surroundContents(a); } catch(e) {
+      var h = r.extractContents();
+      a.appendChild(h);
+      r.insertNode(a);
+    }
+    sel.removeAllRanges();
+    var nr = document.createRange();
+    nr.setStartAfter(a);
+    nr.collapse(true);
+    sel.addRange(nr);
+  } else {
+    wrapInsert(id, '<a href="' + url.replace(/"/g,'&quot;') + '" target="_blank">' + url + '</a>');
+  }
+  document.getElementById(id).value = fe.innerHTML;
 }
 function feImage(id) {
-  const url = prompt('URL de la imagen (directa, ej: https://ejemplo.com/foto.jpg):');
+  var url = prompt('URL de la imagen (directa, ej: https://ejemplo.com/foto.jpg):');
   if (!url) return;
-  document.execCommand('insertHTML', false, '<img src="' + url.replace(/"/g,'&quot;') + '" alt="Imagen" style="max-width:100%;border-radius:6px">');
-  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+  wrapInsert(id, '<img src="' + url.replace(/"/g,'&quot;') + '" alt="Imagen" style="max-width:100%;border-radius:6px">');
 }
 function feVideo(id) {
-  const url = prompt('URL del video de YouTube:');
+  var url = prompt('URL del video de YouTube:');
   if (!url) return;
-  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  if (!match) { alert('URL de YouTube no válida'); return; }
-  const vid = match[1];
-  document.execCommand('insertHTML', false, '<div class="eti-video-wrap"><iframe src="https://www.youtube.com/embed/' + vid + '" allowfullscreen></iframe></div>');
-  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+  var match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (!match) { alert('URL de YouTube no v\u00e1lida'); return; }
+  wrapInsert(id, '<div class="eti-video-wrap"><iframe src="https://www.youtube.com/embed/' + match[1] + '" allowfullscreen></iframe></div>');
 }
 function feWokwi(id) {
-  const input = prompt('Pegá la URL o ID del proyecto de Wokwi:\nhttps://wokwi.com/projects/1234567890');
+  var input = prompt('Peg\u00e1 la URL o ID del proyecto de Wokwi:\nhttps://wokwi.com/projects/1234567890');
   if (!input) return;
-  const m = input.match(/wokwi\.com\/projects\/(\d+)/);
-  const id2 = m ? m[1] : (/^\d+$/.test(input.trim()) ? input.trim() : null);
-  if (!id2) { alert('URL de Wokwi no válida'); return; }
-  document.execCommand('insertHTML', false, '<div class="eti-wokwi-wrap"><iframe src="https://wokwi.com/projects/' + id2 + '?hide=menu,sidebar" allowfullscreen></iframe></div>');
-  document.getElementById(id).value = document.getElementById(id + '_fe').innerHTML;
+  var m = input.match(/wokwi\.com\/projects\/(\d+)/);
+  var id2 = m ? m[1] : (/^\d+$/.test(input.trim()) ? input.trim() : null);
+  if (!id2) { alert('URL de Wokwi no v\u00e1lida'); return; }
+  wrapInsert(id, '<div class="eti-wokwi-wrap"><iframe src="https://wokwi.com/projects/' + id2 + '?hide=menu,sidebar" allowfullscreen></iframe></div>');
+}
+function feLatex(id) {
+  var eq = prompt('F\u00f3rmula LaTeX (ej: E = mc^2):');
+  if (!eq) return;
+  wrapInsert(id, '$$' + eq + '$$');
 }
 function cleanForumPaste(html) {
   return html.replace(/<script[\s\S]*?<\/script>/gi, '')
