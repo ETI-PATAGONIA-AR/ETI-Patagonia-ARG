@@ -122,6 +122,31 @@
   </div>
 </div>
 
+<div class="modal fade" id="driverModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#E74C3C;color:white">
+        <h5 class="modal-title"><i class="bi bi-usb-symbol me-2"></i>Instalar Driver uPLC</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <div style="font-size:3rem;margin-bottom:1rem">🔌</div>
+        <h5>Para programar Arduino necesitás instalar el Driver uPLC</h5>
+        <p class="text-muted mt-2 mb-3">Es un programa pequeño que permite al editor web comunicarse con tu Arduino. Se instala una sola vez.</p>
+        <ol class="text-start mx-auto" style="max-width:350px;font-size:14px">
+          <li class="mb-1">Descargá el instalador</li>
+          <li class="mb-1">Ejecutá <code>instalar.bat</code></li>
+          <li class="mb-1">Aceptá los permisos</li>
+          <li class="mb-1">Volvé a hacer clic en <strong>🔌 Bridge</strong></li>
+        </ol>
+        <a href="#" id="driverDownloadBtn" class="btn btn-danger btn-lg mt-2" target="_blank">
+          <i class="bi bi-download me-2"></i>Descargar Driver uPLC
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/blockly@10.4.3/blockly.min.js"></script>
 <script src="https://unpkg.com/blockly@10.4.3/msg/es.js"></script>
@@ -614,6 +639,20 @@ function processBridgeMessage(msg) {
     document.getElementById('btn-upload').textContent = '📤 Subir al Arduino';
   }
 }
+
+const DRIVER_URL = 'https://drive.google.com/uc?export=download&id=1_6rKFXrsGY9x9WLyCZMor6nz8oxa1Brq';
+
+function showDriverModal() {
+  const btn = document.getElementById('driverDownloadBtn');
+  if (DRIVER_URL && DRIVER_URL !== '#REEMPLAZAR_CON_LINK_DE_DRIVE#') {
+    btn.href = DRIVER_URL;
+  } else {
+    btn.href = '#';
+    btn.onclick = (e) => { e.preventDefault(); alert('Pedile el link del Driver al profesor.'); };
+  }
+  new bootstrap.Modal(document.getElementById('driverModal')).show();
+}
+
 function connectBridge() {
   if (bridgeWs && bridgeWs.readyState === WebSocket.OPEN) {
     bridgeWs.close();
@@ -658,7 +697,7 @@ function connectBridge() {
       if (retries >= maxRetries) {
         clearInterval(retryInterval);
         tryingAutoStart = false;
-        alert('No se pudo iniciar uPLC-Bridge.\n\nEjecutá iniciar.bat manualmente.');
+        showDriverModal();
         return;
       }
       setStatus(`Reintentando... (${retries}/${maxRetries})`);
