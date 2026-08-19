@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>uPLC-Web — Editor de Bloques | ETI Patagonia</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;background:#f0f4ff}
+
+  .navbar{background:#0b1a33!important;padding:.4rem 0}
+  .navbar-brand{font-weight:700;color:#fff!important;font-size:.95rem}
+  .navbar-brand img{height:28px}
+
+  #toolbar{display:flex;align-items:center;gap:6px;padding:5px 12px;background:#1a3a6b;min-height:40px;flex-wrap:wrap}
+  #toolbar button{padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;color:white;white-space:nowrap}
+  #btn-new{background:#E74C3C}#btn-open{background:#27AE60}
+  #btn-gen{background:#8E44AD;font-size:13px}#btn-clear{background:#7F8C8D}
+  #btn-back{background:#5D6D7E}
+  #toolbar span{color:white;font-weight:bold;font-size:14px;margin-right:6px}
+  select.board-select{padding:4px 8px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer}
+  input[type=file]{display:none}
+
+  #main{display:flex;flex:1;overflow:hidden}
+  #blocklyArea{flex:1;position:relative}
+  #blocklyDiv{position:absolute;top:0;left:0;right:0;bottom:0}
+  #codePanel{width:340px;display:flex;flex-direction:column;background:#1e1e1e;border-left:2px solid #3498DB}
+  #codePanelTitle{background:#2980B9;color:white;padding:6px 10px;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:space-between}
+  #codePanelTitle button{background:rgba(255,255,255,.2);border:none;color:white;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer}
+  #codePreview{flex:1;overflow:auto;padding:8px;color:#d4d4d4;font-family:'Courier New',monospace;font-size:11px;white-space:pre;line-height:1.5}
+  #statusBar{background:#2C3E50;color:#ecf0f1;padding:3px 10px;font-size:11px;display:flex;justify-content:space-between}
+  .blocklyMainBackground{fill:#f8faff!important}
+
+  @media(max-width:768px){
+    #codePanel{display:none}
+    #toolbar{padding:4px 8px}
+    #toolbar span{font-size:12px}
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark">
+  <div class="container-fluid px-3">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="app.html">
+      <img src="img/ETI1.png" alt="ETI"> uPLC-Web — Editor de Bloques
+    </a>
+    <a href="app.html" class="btn btn-sm btn-outline-light"><i class="bi bi-arrow-left me-1"></i>Volver</a>
+  </div>
+</nav>
+
+<div id="toolbar">
+  <span>🎮 uPLC-Web</span>
+  <button id="btn-back" onclick="location.href='app.html'"><i class="bi bi-arrow-left"></i> Volver</button>
+  <button id="btn-new">📄 Nuevo</button>
+  <button id="btn-open">📂 Abrir</button>
+  <button id="btn-gen">⚡ Generar .ino</button>
+  <button id="btn-clear">🗑 Limpiar</button>
+  <select class="board-select" id="boardSelect">
+    <option value="uno">Arduino UNO</option>
+    <option value="nano">Arduino NANO</option>
+    <option value="nano_old">NANO (bootloader viejo)</option>
+  </select>
+  <input type="file" id="fileInput" accept=".uplcj,.xml">
+</div>
+
+<div id="main">
+  <div id="blocklyArea"><div id="blocklyDiv"></div></div>
+  <div id="codePanel">
+    <div id="codePanelTitle">
+      <span>📋 Vista previa del sketch Arduino</span>
+      <button onclick="copyCode()"><i class="bi bi-clipboard me-1"></i>Copiar</button>
+    </div>
+    <pre id="codePreview">// El código aparecerá aquí
+// mientras construís el programa</pre>
+  </div>
+</div>
+
+<div id="statusBar">
+  <span id="statusMsg">Cargando editor...</span>
+  <span>uPLC-Web v1.0 — ETI Patagonia</span>
+</div>
+
+<script src="https://unpkg.com/blockly@10.4.3/blockly.min.js"></script>
+<script src="https://unpkg.com/blockly@10.4.3/msg/es.js"></script>
+<script>
+'use strict';
+
+const gs = {
+  lcd:false,servo:false,sserial:false,ultrasonic:false,
+  buzzer:false,l298:false,serial:false,game:false,face:false,bt:false,
+  timers:new Set(),counters:new Set(),vars:new Set(),
+  mems:new Set(),sprites:new Set(),
+  dout:new Set(),din:new Map(),pwm:new Set(),
+  reset(){
+    this.lcd=this.servo=this.sserial=this.ultrasonic=false;
+    this.buzzer=this.l298=this.serial=this.game=this.face=this.bt=false;
+    this.timers.clear();this.counters.clear();this.vars.clear();
+    this.mems.clear();this.sprites.clear();
+    this.dout.clear();this.din.clear();this.pwm.clear();
+  }
+};
+
+Blockly.defineBlocksWithJsonArray([
+{type:'blk_al_iniciar',message0:'🟡 Al iniciar',message1:'%1',args1:[{type:'input_statement',name:'BODY'}],colour:'#E67E00',tooltip:'Se ejecuta una vez al encender',hat:'cap'},
+{type:'blk_para_siempre',message0:'🔄 Para siempre',message1:'%1',args1:[{type:'input_statement',name:'BODY'}],colour:'#E67E00',tooltip:'Se repite sin parar'},
+{type:'blk_funcion_def',message0:'🔧 función %1',message1:'%1',args0:[{type:'field_input',name:'NAME',text:'miCodigo'}],args1:[{type:'input_statement',name:'BODY'}],colour:'#117A65',tooltip:'Define una función',hat:'cap'},
+{type:'blk_llamar_fun',message0:'📞 llamar %1',args0:[{type:'field_input',name:'NAME',text:'miCodigo'}],previousStatement:null,nextStatement:null,colour:'#117A65',tooltip:'Llama a una función'},
+{type:'blk_si',message0:'🔷 si %1 entonces',message1:'%1',args0:[{type:'input_value',name:'COND',check:'Boolean'}],args1:[{type:'input_statement',name:'DO'}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Ejecuta si la condición es verdadera'},
+{type:'blk_si_sino',message0:'🔷 si %1 entonces',message1:'%1',message2:'sino',message3:'%1',args0:[{type:'input_value',name:'COND',check:'Boolean'}],args1:[{type:'input_statement',name:'DO'}],args3:[{type:'input_statement',name:'ELSE'}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Si/sino'},
+{type:'blk_repetir',message0:'🔁 repetir %1 veces',message1:'%1',args0:[{type:'input_value',name:'TIMES',check:'Number'}],args1:[{type:'input_statement',name:'DO'}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Repite N veces'},
+{type:'blk_mientras',message0:'🔁 mientras %1',message1:'%1',args0:[{type:'input_value',name:'COND',check:'Boolean'}],args1:[{type:'input_statement',name:'DO'}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Repite mientras sea verdadero'},
+{type:'blk_para_rango',message0:'🔁 para %1 de %2 hasta %3',message1:'%1',args0:[{type:'field_dropdown',name:'VAR',options:[['V0','V0'],['V1','V1'],['V2','V2'],['V3','V3'],['V4','V4']]},{type:'input_value',name:'FROM',check:'Number'},{type:'input_value',name:'TO',check:'Number'}],args1:[{type:'input_statement',name:'DO'}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Bucle for'},
+{type:'blk_retornar',message0:'↩ retornar',previousStatement:null,colour:'#2980B9',tooltip:'Termina la función'},
+{type:'blk_parar_todo',message0:'⛔ parar todo',previousStatement:null,colour:'#E74C3C',tooltip:'Detiene el programa'},
+{type:'blk_y',message0:'%1 Y %2',args0:[{type:'input_value',name:'A',check:'Boolean'},{type:'input_value',name:'B',check:'Boolean'}],output:'Boolean',colour:'#27AE60',tooltip:'Y lógico'},
+{type:'blk_o',message0:'%1 O %2',args0:[{type:'input_value',name:'A',check:'Boolean'},{type:'input_value',name:'B',check:'Boolean'}],output:'Boolean',colour:'#27AE60',tooltip:'O lógico'},
+{type:'blk_no',message0:'NO %1',args0:[{type:'input_value',name:'A',check:'Boolean'}],output:'Boolean',colour:'#27AE60',tooltip:'Negación'},
+{type:'blk_comparar',message0:'%1 %2 %3',args0:[{type:'input_value',name:'A'},{type:'field_dropdown',name:'OP',options:[['=','=='],['≠','!='],['<','<'],['≤','<='],['>', '>'],['≥','>=']]},{type:'input_value',name:'B'}],output:'Boolean',colour:'#27AE60',tooltip:'Compara dos valores'},
+{type:'blk_set_var',message0:'📦 establecer %1 = %2',args0:[{type:'field_dropdown',name:'VAR',options:[['V0','V0'],['V1','V1'],['V2','V2'],['V3','V3'],['V4','V4'],['V5','V5'],['V6','V6'],['V7','V7'],['V8','V8'],['V9','V9']]},{type:'input_value',name:'VAL'}],previousStatement:null,nextStatement:null,colour:'#E74C3C',tooltip:'Guarda un valor'},
+{type:'blk_change_var',message0:'📦 cambiar %1 en %2',args0:[{type:'field_dropdown',name:'VAR',options:[['V0','V0'],['V1','V1'],['V2','V2'],['V3','V3'],['V4','V4'],['V5','V5'],['V6','V6'],['V7','V7'],['V8','V8'],['V9','V9']]},{type:'input_value',name:'DELTA'}],previousStatement:null,nextStatement:null,colour:'#E74C3C',tooltip:'Aumenta/disminuye'},
+{type:'blk_get_var',message0:'📦 %1',args0:[{type:'field_dropdown',name:'VAR',options:[['V0','V0'],['V1','V1'],['V2','V2'],['V3','V3'],['V4','V4'],['V5','V5'],['V6','V6'],['V7','V7'],['V8','V8'],['V9','V9']]}],output:'Number',colour:'#E74C3C',tooltip:'Lee variable'},
+{type:'blk_set_mem',message0:'🧠 memoria %1 = %2',args0:[{type:'field_dropdown',name:'MEM',options:[['M0','M0'],['M1','M1'],['M2','M2'],['M3','M3'],['M4','M4'],['M5','M5'],['M6','M6'],['M7','M7'],['M8','M8'],['M9','M9']]},{type:'input_value',name:'VAL',check:'Boolean'}],previousStatement:null,nextStatement:null,colour:'#E74C3C',tooltip:'Guarda en memoria'},
+{type:'blk_get_mem',message0:'🧠 %1',args0:[{type:'field_dropdown',name:'MEM',options:[['M0','M0'],['M1','M1'],['M2','M2'],['M3','M3'],['M4','M4'],['M5','M5'],['M6','M6'],['M7','M7'],['M8','M8'],['M9','M9']]}],output:'Boolean',colour:'#E74C3C',tooltip:'Lee memoria'},
+{type:'blk_math_op',message0:'%1 %2 %3',args0:[{type:'input_value',name:'A',check:'Number'},{type:'field_dropdown',name:'OP',options:[['+','+'],['−','-'],['×','*'],['÷','/']]},{type:'input_value',name:'B',check:'Number'}],output:'Number',colour:'#8E44AD',tooltip:'Operación matemática'},
+{type:'blk_map_val',message0:'🗺 mapear %1 de [%2-%3] a [%4-%5]',args0:[{type:'input_value',name:'VAL',check:'Number'},{type:'field_number',name:'F1',value:0},{type:'field_number',name:'T1',value:1023},{type:'field_number',name:'F2',value:0},{type:'field_number',name:'T2',value:255}],output:'Number',colour:'#8E44AD',tooltip:'Mapea rango'},
+{type:'blk_random',message0:'🎲 azar entre %1 y %2',args0:[{type:'input_value',name:'MIN',check:'Number'},{type:'input_value',name:'MAX',check:'Number'}],output:'Number',colour:'#8E44AD',tooltip:'Número al azar'},
+{type:'blk_abs',message0:'|%1|',args0:[{type:'input_value',name:'N',check:'Number'}],output:'Number',colour:'#8E44AD',tooltip:'Valor absoluto'},
+{type:'blk_constrain',message0:'limitar %1 entre %2 y %3',args0:[{type:'input_value',name:'VAL',check:'Number'},{type:'input_value',name:'LO',check:'Number'},{type:'input_value',name:'HI',check:'Number'}],output:'Number',colour:'#8E44AD',tooltip:'Limita valor'},
+{type:'blk_num',message0:'%1',args0:[{type:'field_number',name:'NUM',value:0}],output:'Number',colour:'#8E44AD',tooltip:'Número'},
+{type:'blk_texto',message0:'"%1"',args0:[{type:'field_input',name:'TXT',text:'Hola'}],output:'String',colour:'#8E44AD',tooltip:'Texto'},
+{type:'blk_boton',message0:'🔘 leer digital %1 %2 %3',args0:[{type:'field_dropdown',name:'IN',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]},{type:'field_dropdown',name:'PULL',options:[['PullDown','INPUT'],['PullUp','INPUT_PULLUP']]},{type:'field_dropdown',name:'ACT',options:[['estado HIGH=1','1'],['estado LOW=0','0']]}],output:'Boolean',colour:'#E67E22',tooltip:'Lee pin digital'},
+{type:'blk_analogico',message0:'📊 analógico %1',args0:[{type:'field_dropdown',name:'AN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#E67E22',tooltip:'Lee analógico'},
+{type:'blk_adc_map',message0:'📊 %1 mapeado a [%2-%3]',args0:[{type:'field_dropdown',name:'AN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]},{type:'field_number',name:'LO',value:0},{type:'field_number',name:'HI',value:100}],output:'Number',colour:'#E67E22',tooltip:'Analógico mapeado'},
+{type:'blk_encender',message0:'💡 encender pin %1',args0:[{type:'field_dropdown',name:'OUT',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]}],previousStatement:null,nextStatement:null,colour:'#2C3E50',tooltip:'Pin HIGH'},
+{type:'blk_apagar',message0:'🌑 apagar pin %1',args0:[{type:'field_dropdown',name:'OUT',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]}],previousStatement:null,nextStatement:null,colour:'#2C3E50',tooltip:'Pin LOW'},
+{type:'blk_pwm_q6',message0:'⚡ PWM pin %1 velocidad %2 %',args0:[{type:'field_dropdown',name:'PIN',options:[['D3','3'],['D5','5'],['D6','6'],['D9','9'],['D10','10'],['D11','11']]},{type:'input_value',name:'PCT',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#2C3E50',tooltip:'PWM 0-100%'},
+{type:'blk_esperar_ms',message0:'⏱ esperar %1 ms',args0:[{type:'input_value',name:'MS',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#16A085',tooltip:'Espera ms'},
+{type:'blk_esperar_seg',message0:'⏱ esperar %1 segundos',args0:[{type:'input_value',name:'SEG',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#16A085',tooltip:'Espera segundos'},
+{type:'blk_millis',message0:'⏱ tiempo actual (ms)',output:'Number',colour:'#16A085',tooltip:'Milisegundos'},
+{type:'blk_ton',message0:'⏳ TON %1 tiempo %2 ms si listo: %3',args0:[{type:'field_dropdown',name:'TIM',options:[['T0','T0'],['T1','T1'],['T2','T2'],['T3','T3'],['T4','T4'],['T5','T5'],['T6','T6'],['T7','T7'],['T8','T8'],['T9','T9']]},{type:'input_value',name:'MS',check:'Number'},{type:'input_statement',name:'DONE'}],previousStatement:null,nextStatement:null,colour:'#16A085',tooltip:'Timer ON delay'},
+{type:'blk_toff',message0:'⏳ TOFF %1 tiempo %2 ms si listo: %3',args0:[{type:'field_dropdown',name:'TIM',options:[['T0','T0'],['T1','T1'],['T2','T2'],['T3','T3'],['T4','T4'],['T5','T5'],['T6','T6'],['T7','T7'],['T8','T8'],['T9','T9']]},{type:'input_value',name:'MS',check:'Number'},{type:'input_statement',name:'DONE'}],previousStatement:null,nextStatement:null,colour:'#16A085',tooltip:'Timer OFF delay'},
+{type:'blk_timer_listo',message0:'⏳ %1 completado',args0:[{type:'field_dropdown',name:'TIM',options:[['T0','T0'],['T1','T1'],['T2','T2'],['T3','T3'],['T4','T4'],['T5','T5'],['T6','T6'],['T7','T7'],['T8','T8'],['T9','T9']]}],output:'Boolean',colour:'#16A085',tooltip:'Timer listo'},
+{type:'blk_ctu',message0:'🔢 Contar arriba %1 hasta %2',args0:[{type:'field_dropdown',name:'CNT',options:[['C0','C0'],['C1','C1'],['C2','C2'],['C3','C3'],['C4','C4'],['C5','C5'],['C6','C6'],['C7','C7'],['C8','C8'],['C9','C9']]},{type:'input_value',name:'PRESET',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#8E44AD',tooltip:'Contador ascendente'},
+{type:'blk_ctd',message0:'🔢 Contar abajo %1 desde %2',args0:[{type:'field_dropdown',name:'CNT',options:[['C0','C0'],['C1','C1'],['C2','C2'],['C3','C3'],['C4','C4'],['C5','C5'],['C6','C6'],['C7','C7'],['C8','C8'],['C9','C9']]},{type:'input_value',name:'PRESET',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#8E44AD',tooltip:'Contador descendente'},
+{type:'blk_ctr',message0:'🔢 Reset contador %1',args0:[{type:'field_dropdown',name:'CNT',options:[['C0','C0'],['C1','C1'],['C2','C2'],['C3','C3'],['C4','C4'],['C5','C5'],['C6','C6'],['C7','C7'],['C8','C8'],['C9','C9']]}],previousStatement:null,nextStatement:null,colour:'#8E44AD',tooltip:'Reset contador'},
+{type:'blk_contador_val',message0:'🔢 valor %1',args0:[{type:'field_dropdown',name:'CNT',options:[['C0','C0'],['C1','C1'],['C2','C2'],['C3','C3'],['C4','C4'],['C5','C5'],['C6','C6'],['C7','C7'],['C8','C8'],['C9','C9']]}],output:'Number',colour:'#8E44AD',tooltip:'Valor contador'},
+{type:'blk_contador_listo',message0:'🔢 %1 llegó al limite',args0:[{type:'field_dropdown',name:'CNT',options:[['C0','C0'],['C1','C1'],['C2','C2'],['C3','C3'],['C4','C4'],['C5','C5'],['C6','C6'],['C7','C7'],['C8','C8'],['C9','C9']]}],output:'Boolean',colour:'#8E44AD',tooltip:'Contador al límite'},
+{type:'blk_lcd_clear',message0:'🖥 Borrar pantalla',previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Borra LCD'},
+{type:'blk_lcd_texto',message0:'🖥 Escribir "%1" en col %2 fila %3',args0:[{type:'field_input',name:'TXT',text:'Hola!'},{type:'field_number',name:'COL',value:0,min:0,max:19},{type:'field_dropdown',name:'ROW',options:[['0','0'],['1','1'],['2','2'],['3','3']]}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Escribe en LCD'},
+{type:'blk_lcd_numero',message0:'🖥 Mostrar número %1 en col %2 fila %3',args0:[{type:'input_value',name:'NUM',check:'Number'},{type:'field_number',name:'COL',value:0,min:0,max:19},{type:'field_dropdown',name:'ROW',options:[['0','0'],['1','1'],['2','2'],['3','3']]}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Muestra número en LCD'},
+{type:'blk_lcd_cara',message0:'🖥 Mostrar cara %1',args0:[{type:'field_dropdown',name:'FACE',options:[['Feliz 😊','happy'],['Triste 😢','sad'],['Sorprendida 😲','surp']]}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Cara animada en LCD'},
+{type:'blk_lcd_punto',message0:'🖥 Punto LCD col %1 fila %2 estado %3',args0:[{type:'input_value',name:'COL',check:'Number'},{type:'input_value',name:'ROW',check:'Number'},{type:'field_dropdown',name:'ST',options:[['ON','1'],['OFF','0']]}],previousStatement:null,nextStatement:null,colour:'#2980B9',tooltip:'Punto en LCD'},
+{type:'blk_tono',message0:'🎵 Tono %1 Hz por %2 ms',args0:[{type:'input_value',name:'FREQ',check:'Number'},{type:'input_value',name:'DUR',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#1ABC9C',tooltip:'Tono por buzzer'},
+{type:'blk_nota',message0:'🎵 Nota %1 por %2 ms',args0:[{type:'field_dropdown',name:'NOTE',options:[['DO(262)','262'],['RE(294)','294'],['MI(330)','330'],['FA(349)','349'],['SOL(392)','392'],['LA(440)','440'],['SI(494)','494'],['DO2(523)','523'],['RE2(587)','587'],['MI2(659)','659']]},{type:'input_value',name:'DUR',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#1ABC9C',tooltip:'Toca nota'},
+{type:'blk_silencio',message0:'🔇 Silencio',previousStatement:null,nextStatement:null,colour:'#1ABC9C',tooltip:'Detiene sonido'},
+{type:'blk_melodia',message0:'🎶 Tocar melodía %1',args0:[{type:'field_dropdown',name:'MEL',options:[['Cumpleaños','birthday'],['Navidad','xmas'],['Mario','mario'],['Imperial','imperial'],['Tetris','tetris']]}],previousStatement:null,nextStatement:null,colour:'#1ABC9C',tooltip:'Melodía predefinida'},
+{type:'blk_motor_pwm',message0:'⚙️ Motor PWM pin %1 velocidad %2 %',args0:[{type:'field_dropdown',name:'PIN',options:[['D3','3'],['D5','5'],['D6','6'],['D9','9'],['D10','10'],['D11','11']]},{type:'input_value',name:'SPD',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#7F8C8D',tooltip:'Motor DC PWM'},
+{type:'blk_motor_l298',message0:'⚙️ L298 IN1 %1 IN2 %2 dir %3 ENA %4 vel %5 %',args0:[{type:'field_dropdown',name:'IN1',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]},{type:'field_dropdown',name:'IN2',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]},{type:'field_dropdown',name:'DIR',options:[['Adelante','fwd'],['Atrás','bwd'],['Parar','stop']]},{type:'field_dropdown',name:'ENA',options:[['D3','3'],['D5','5'],['D6','6'],['D9','9'],['D10','10'],['D11','11']]},{type:'input_value',name:'SPD',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#7F8C8D',tooltip:'Motor L298'},
+{type:'blk_servo',message0:'⚙️ Servo pin %1 ángulo %2 °',args0:[{type:'field_dropdown',name:'PIN',options:[['D3','3'],['D5','5'],['D6','6'],['D9','9'],['D10','10'],['D11','11']]},{type:'input_value',name:'ANG',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#7F8C8D',tooltip:'Servo motor'},
+{type:'blk_lm35',message0:'🌡 Temperatura LM35 en %1',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#D35400',tooltip:'Temperatura LM35'},
+{type:'blk_fotores',message0:'☀ Luz fotoresistencia %1',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#D35400',tooltip:'Nivel de luz'},
+{type:'blk_ultrasonico',message0:'📡 Distancia HC-SR04 trig %1 echo %2 cm',args0:[{type:'field_dropdown',name:'TRIG',options:[['D2','2'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8']]},{type:'field_dropdown',name:'ECHO',options:[['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12']]}],output:'Number',colour:'#D35400',tooltip:'Sensor ultrasónico'},
+{type:'blk_joystick_x',message0:'🕹 Joystick X en %1',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#D35400',tooltip:'Eje X joystick'},
+{type:'blk_joystick_y',message0:'🕹 Joystick Y en %1',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#D35400',tooltip:'Eje Y joystick'},
+{type:'blk_sonido_nivel',message0:'🎤 Nivel de sonido en %1',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#D35400',tooltip:'Nivel de sonido'},
+{type:'blk_lluvia',message0:'🌧 Lluvia detectada en %1',args0:[{type:'field_dropdown',name:'PIN',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]}],output:'Boolean',colour:'#D35400',tooltip:'Sensor lluvia'},
+{type:'blk_obstaculo',message0:'🚧 Obstáculo detectado en %1',args0:[{type:'field_dropdown',name:'PIN',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]}],output:'Boolean',colour:'#D35400',tooltip:'Sensor obstáculo'},
+{type:'blk_serial_enviar_num',message0:'📻 Serial enviar número %1',args0:[{type:'input_value',name:'VAL',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#6C3483',tooltip:'Envía número por Serial'},
+{type:'blk_serial_enviar_txt',message0:'📻 Serial enviar texto %1',args0:[{type:'input_value',name:'TXT'}],previousStatement:null,nextStatement:null,colour:'#6C3483',tooltip:'Envía texto por Serial'},
+{type:'blk_bt_pub_dig',message0:'📱 BT enviar pin %1 al celular',args0:[{type:'field_dropdown',name:'PIN',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]}],previousStatement:null,nextStatement:null,colour:'#1565C0',tooltip:'BT envía pin digital'},
+{type:'blk_bt_pub_ana',message0:'📱 BT enviar analógico %1 al celular',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],previousStatement:null,nextStatement:null,colour:'#1565C0',tooltip:'BT envía analógico'},
+{type:'blk_bt_pub_num',message0:'📱 BT enviar número %1',args0:[{type:'input_value',name:'VAL',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#1565C0',tooltip:'BT envía número'},
+{type:'blk_bt_pub_txt',message0:'📱 BT enviar texto %1',args0:[{type:'input_value',name:'TXT'}],previousStatement:null,nextStatement:null,colour:'#1565C0',tooltip:'BT envía texto'},
+{type:'blk_bt_var_dig',message0:'📱 BT estado de %1',args0:[{type:'field_dropdown',name:'PIN',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]}],output:'Number',colour:'#1565C0',tooltip:'BT valor pin digital'},
+{type:'blk_bt_var_ana',message0:'📱 BT valor de %1',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#1565C0',tooltip:'BT valor analógico'},
+{type:'blk_bt_var_pwm',message0:'📱 BT PWM de %1',args0:[{type:'field_dropdown',name:'PIN',options:[['D3','3'],['D5','5'],['D6','6'],['D9','9'],['D10','10'],['D11','11']]}],output:'Number',colour:'#1565C0',tooltip:'BT valor PWM'},
+{type:'blk_bt_recibir',message0:'📱 BT último número recibido',output:'Number',colour:'#1565C0',tooltip:'Último número BT'},
+{type:'blk_bt_hay_dato',message0:'📱 llegó dato del celular',output:'Boolean',colour:'#1565C0',tooltip:'Dato nuevo BT'},
+{type:'blk_sprite_set',message0:'🎮 Sprite "%1" en col %2 fila %3',args0:[{type:'field_input',name:'NAME',text:'jugador'},{type:'input_value',name:'COL',check:'Number'},{type:'input_value',name:'ROW',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#CB4335',tooltip:'Posiciona sprite'},
+{type:'blk_sprite_mover',message0:'🎮 Mover sprite "%1" col +%2 fila +%3',args0:[{type:'field_input',name:'NAME',text:'jugador'},{type:'input_value',name:'DC',check:'Number'},{type:'input_value',name:'DR',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#CB4335',tooltip:'Mueve sprite'},
+{type:'blk_sprite_col',message0:'🎮 columna de "%1"',args0:[{type:'field_input',name:'NAME',text:'jugador'}],output:'Number',colour:'#CB4335',tooltip:'Columna sprite'},
+{type:'blk_sprite_fila',message0:'🎮 fila de "%1"',args0:[{type:'field_input',name:'NAME',text:'jugador'}],output:'Number',colour:'#CB4335',tooltip:'Fila sprite'},
+{type:'blk_colision',message0:'🎮 colisión entre "%1" y "%2"',args0:[{type:'field_input',name:'A',text:'jugador'},{type:'field_input',name:'B',text:'obstaculo'}],output:'Boolean',colour:'#CB4335',tooltip:'Colisión sprites'},
+{type:'blk_puntos_sumar',message0:'🏆 sumar %1 puntos',args0:[{type:'input_value',name:'N',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#CB4335',tooltip:'Suma puntos'},
+{type:'blk_vidas_restar',message0:'❤ restar %1 vida/s',args0:[{type:'input_value',name:'N',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#CB4335',tooltip:'Resta vidas'},
+{type:'blk_game_over',message0:'💀 Fin del juego',previousStatement:null,colour:'#CB4335',tooltip:'Fin del juego'},
+{type:'blk_get_puntos',message0:'🏆 puntuación',output:'Number',colour:'#CB4335',tooltip:'Puntuación'},
+{type:'blk_get_vidas',message0:'❤ vidas',output:'Number',colour:'#CB4335',tooltip:'Vidas'},
+{type:'blk_pin_write',message0:'📌 Pin %1 = %2',args0:[{type:'field_dropdown',name:'PIN',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]},{type:'field_dropdown',name:'VAL',options:[['HIGH (1)','HIGH'],['LOW (0)','LOW']]}],previousStatement:null,nextStatement:null,colour:'#5D6D7E',tooltip:'Escribe pin'},
+{type:'blk_pin_pwm_write',message0:'📌 Pin PWM %1 = %2',args0:[{type:'field_dropdown',name:'PIN',options:[['D3','3'],['D5','5'],['D6','6'],['D9','9'],['D10','10'],['D11','11']]},{type:'input_value',name:'VAL',check:'Number'}],previousStatement:null,nextStatement:null,colour:'#5D6D7E',tooltip:'Escribe PWM'},
+{type:'blk_pin_leer',message0:'📌 leer pin %1',args0:[{type:'field_dropdown',name:'PIN',options:[['D2','2'],['D3','3'],['D4','4'],['D5','5'],['D6','6'],['D7','7'],['D8','8'],['D9','9'],['D10','10'],['D11','11'],['D12','12'],['D13','13']]}],output:'Boolean',colour:'#5D6D7E',tooltip:'Lee pin digital'},
+{type:'blk_pin_analog_leer',message0:'📌 leer analógico %1',args0:[{type:'field_dropdown',name:'PIN',options:[['A0','A0'],['A1','A1'],['A2','A2'],['A3','A3']]}],output:'Number',colour:'#5D6D7E',tooltip:'Lee pin analógico'}
+]);
+
+if(!Blockly.Blocks['math_number']){Blockly.defineBlocksWithJsonArray([{type:'math_number',message0:'%1',args0:[{type:'field_number',name:'NUM',value:0}],output:'Number',colour:'#8E44AD'}]);}
+
+const Arduino = new Blockly.Generator('Arduino');
+Arduino.ORDER_ATOMIC=0;Arduino.ORDER_UNARY=2;Arduino.ORDER_MULT=3;Arduino.ORDER_ADDITIVE=4;
+Arduino.ORDER_RELATIONAL=6;Arduino.ORDER_EQUALITY=7;Arduino.ORDER_LOGICAL_AND=11;Arduino.ORDER_LOGICAL_OR=12;Arduino.ORDER_NONE=99;
+Arduino.INDENT='';
+Arduino.scrub_=function(block,code,thisOnly){const next=block.nextConnection&&block.nextConnection.targetBlock();return thisOnly?code:code+(next?Arduino.blockToCode(next):'');};
+
+function ind(code){return code.split('\n').filter(l=>l.trim()).map(l=>'  '+l).join('\n')+'\n';}
+function v(block,n,o){return Arduino.valueToCode(block,n,o||Arduino.ORDER_ATOMIC)||'0';}
+function vs(block,n){return Arduino.valueToCode(block,n,Arduino.ORDER_NONE)||'"?"';}
+function st(block,n){return Arduino.statementToCode(block,n)||'';}
+function f(block,n){const r=block.getFieldValue(n);return(r!==null&&r!==undefined)?String(r):'';}
+function ff(block,n,def){const r=f(block,n);return(r===''||r===null)?String(def):r;}
+function block_getNum(b,n){const r=b.getFieldValue(n);return(r!==null&&r!==undefined)?String(r):'0';}
+
+Arduino.forBlock['blk_al_iniciar']=()=>'';
+Arduino.forBlock['blk_para_siempre']=()=>'';
+Arduino.forBlock['blk_funcion_def']=()=>'';
+Arduino.forBlock['blk_llamar_fun']=(b)=>`${f(b,'NAME').replace(/\W/g,'_')}();\n`;
+Arduino.forBlock['blk_retornar']=()=>'return;\n';
+Arduino.forBlock['blk_parar_todo']=()=>'while(1); // parar todo\n';
+Arduino.forBlock['blk_si']=(b)=>{const c=v(b,'COND'),d=st(b,'DO');return`if (${c}) {\n${ind(d)}}\n`;};
+Arduino.forBlock['blk_si_sino']=(b)=>{const c=v(b,'COND'),d=st(b,'DO'),e=st(b,'ELSE');return`if (${c}) {\n${ind(d)}} else {\n${ind(e)}}\n`;};
+Arduino.forBlock['blk_repetir']=(b)=>{const n=v(b,'TIMES'),d=st(b,'DO');return`for (int _i=0; _i<${n}; _i++) {\n${ind(d)}}\n`;};
+Arduino.forBlock['blk_mientras']=(b)=>{const c=v(b,'COND'),d=st(b,'DO');return`while (${c}) {\n${ind(d)}}\n`;};
+Arduino.forBlock['blk_para_rango']=(b)=>{const vr=f(b,'VAR'),fr=v(b,'FROM'),to=v(b,'TO'),d=st(b,'DO');gs.vars.add(vr);return`for (${vr}=${fr}; ${vr}<=${to}; ${vr}++) {\n${ind(d)}}\n`;};
+Arduino.forBlock['blk_y']=(b)=>[`(${v(b,'A')} && ${v(b,'B')})`,Arduino.ORDER_LOGICAL_AND];
+Arduino.forBlock['blk_o']=(b)=>[`(${v(b,'A')} || ${v(b,'B')})`,Arduino.ORDER_LOGICAL_OR];
+Arduino.forBlock['blk_no']=(b)=>[`(!${v(b,'A')})`,Arduino.ORDER_UNARY];
+Arduino.forBlock['blk_comparar']=(b)=>{const a=v(b,'A'),op=f(b,'OP'),bv=v(b,'B');return[`(${a} ${op} ${bv})`,Arduino.ORDER_EQUALITY];};
+Arduino.forBlock['blk_set_var']=(b)=>{const vr=f(b,'VAR'),val=v(b,'VAL');gs.vars.add(vr);return`${vr} = ${val};\n`;};
+Arduino.forBlock['blk_change_var']=(b)=>{const vr=f(b,'VAR'),d=v(b,'DELTA');gs.vars.add(vr);return`${vr} += ${d};\n`;};
+Arduino.forBlock['blk_get_var']=(b)=>{const vr=f(b,'VAR');gs.vars.add(vr);return[vr,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_set_mem']=(b)=>{const m=f(b,'MEM'),val=v(b,'VAL');gs.mems.add(m);return`${m} = ${val};\n`;};
+Arduino.forBlock['blk_get_mem']=(b)=>{const m=f(b,'MEM');gs.mems.add(m);return[m,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_math_op']=(b)=>[`(${v(b,'A')} ${f(b,'OP')} ${v(b,'B')})`,Arduino.ORDER_ADDITIVE];
+Arduino.forBlock['blk_map_val']=(b)=>[`map(${v(b,'VAL')}, ${ff(b,'F1','0')}, ${ff(b,'T1','1023')}, ${ff(b,'F2','0')}, ${ff(b,'T2','255')})`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_random']=(b)=>[`random(${v(b,'MIN')}, ${v(b,'MAX')})`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_abs']=(b)=>[`abs(${v(b,'N')})`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_constrain']=(b)=>[`constrain(${v(b,'VAL')}, ${v(b,'LO')}, ${v(b,'HI')})`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_num']=(b)=>{const r=block_getNum(b,'NUM');return[r,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_texto']=(b)=>[`"${f(b,'TXT').replace(/"/g,'\\"')}"`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['math_number']=(b)=>{const r=block_getNum(b,'NUM');return[r,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['text']=(b)=>[`"${(b.getFieldValue('TEXT')||'').replace(/"/g,'\\"')}"`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['logic_boolean']=(b)=>[b.getFieldValue('BOOL')==='TRUE'?'true':'false',Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_boton']=(b)=>{const pin=f(b,'IN'),pull=f(b,'PULL')||'INPUT',act=f(b,'ACT')||'1';gs.din.set(pin,pull);return[`(digitalRead(${pin}) == ${act})`,Arduino.ORDER_EQUALITY];};
+Arduino.forBlock['blk_analogico']=(b)=>[`analogRead(${f(b,'AN')})`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_adc_map']=(b)=>{const lo=ff(b,'LO','0'),hi=ff(b,'HI','100');return[`map(analogRead(${f(b,'AN')}), 0, 1023, ${lo}, ${hi})`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_encender']=(b)=>{const p=f(b,'OUT');gs.dout.add(p);return`digitalWrite(${p}, HIGH);\n`;};
+Arduino.forBlock['blk_apagar']=(b)=>{const p=f(b,'OUT');gs.dout.add(p);return`digitalWrite(${p}, LOW);\n`;};
+Arduino.forBlock['blk_pwm_q6']=(b)=>{const p=f(b,'PIN');gs.pwm.add(p);return`analogWrite(${p}, (uint8_t)constrain(map(${v(b,'PCT')}, 0, 100, 0, 255), 0, 255));\n`;};
+Arduino.forBlock['blk_esperar_ms']=(b)=>`delay(${v(b,'MS')});\n`;
+Arduino.forBlock['blk_esperar_seg']=(b)=>`delay((unsigned long)(${v(b,'SEG')}) * 1000UL);\n`;
+Arduino.forBlock['blk_millis']=()=>'millis()',Arduino.ORDER_ATOMIC;
+Arduino.forBlock['blk_ton']=(b)=>{const t=f(b,'TIM'),n=t[1],ms=v(b,'MS'),done=st(b,'DONE');gs.timers.add(t);return`// TON ${t}\nif (_T${n}_en) {\n  if (_T${n}_start==0) _T${n}_start=millis();\n  _T${n}_done=(millis()-_T${n}_start>=(unsigned long)(${ms}));\n} else { _T${n}_start=0; _T${n}_done=false; }\nif (_T${n}_done) {\n${ind(done)}}\n`;};
+Arduino.forBlock['blk_toff']=(b)=>{const t=f(b,'TIM'),n=t[1],ms=v(b,'MS'),done=st(b,'DONE');gs.timers.add(t);return`// TOFF ${t}\nif (_T${n}_en) { _T${n}_done=true; _T${n}_prev=true; }\nelse if (_T${n}_prev) { _T${n}_prev=false; _T${n}_start=millis(); }\nelse { _T${n}_done=(millis()-_T${n}_start<(unsigned long)(${ms})); }\nif (_T${n}_done) {\n${ind(done)}}\n`;};
+Arduino.forBlock['blk_timer_listo']=(b)=>{const t=f(b,'TIM');gs.timers.add(t);return[`_T${t[1]}_done`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_ctu']=(b)=>{const c=f(b,'CNT'),n=c[1],pre=v(b,'PRESET');gs.counters.add(c);return`// CTU ${c}\nif (!_C${n}_prev_ctu) { _C${n}_count++; if(_C${n}_count>=${pre}) _C${n}_done=true; }\n_C${n}_prev_ctu=true;\n`;};
+Arduino.forBlock['blk_ctd']=(b)=>{const c=f(b,'CNT'),n=c[1],pre=v(b,'PRESET');gs.counters.add(c);return`// CTD ${c}\nif (!_C${n}_prev_ctd) { if(_C${n}_count>0) _C${n}_count--; if(_C${n}_count==0) _C${n}_done=true; }\n_C${n}_prev_ctd=true;\n`;};
+Arduino.forBlock['blk_ctr']=(b)=>{const c=f(b,'CNT'),n=c[1];gs.counters.add(c);return`_C${n}_count=0; _C${n}_done=false; _C${n}_prev_ctu=false; _C${n}_prev_ctd=false;\n`;};
+Arduino.forBlock['blk_contador_val']=(b)=>{const c=f(b,'CNT');gs.counters.add(c);return[`_C${c[1]}_count`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_contador_listo']=(b)=>{const c=f(b,'CNT');gs.counters.add(c);return[`_C${c[1]}_done`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_lcd_clear']=()=>{gs.lcd=true;return`lcd.clear();\n`;};
+Arduino.forBlock['blk_lcd_texto']=(b)=>{gs.lcd=true;return`lcd.setCursor(${ff(b,'COL','0')},${f(b,'ROW')}); lcd.print("${f(b,'TXT').replace(/"/g,'\\"')}");\n`;};
+Arduino.forBlock['blk_lcd_numero']=(b)=>{gs.lcd=true;return`lcd.setCursor(${ff(b,'COL','0')},${f(b,'ROW')}); lcd.print(${v(b,'NUM')});\n`;};
+Arduino.forBlock['blk_lcd_cara']=(b)=>{gs.lcd=true;gs.face=true;const _fm={'happy':'0','sad':'1','surp':'2'};return`_face_state = ${_fm[f(b,'FACE')]||'0'}; actualizarFace();\n`;};
+Arduino.forBlock['blk_lcd_punto']=(b)=>{gs.lcd=true;gs.game=true;return`setLCDPoint(${v(b,'COL')},${v(b,'ROW')},${f(b,'ST')});\n`;};
+Arduino.forBlock['blk_tono']=(b)=>{gs.buzzer=true;return`tone(8, ${v(b,'FREQ')}, ${v(b,'DUR')}); delay(${v(b,'DUR')}+5);\n`;};
+Arduino.forBlock['blk_nota']=(b)=>{gs.buzzer=true;return`tone(8, ${f(b,'NOTE')}, ${v(b,'DUR')}); delay(${v(b,'DUR')}+5);\n`;};
+Arduino.forBlock['blk_silencio']=()=>{gs.buzzer=true;return`noTone(8);\n`;};
+Arduino.forBlock['blk_melodia']=(b)=>{gs.buzzer=true;return`playMelody("${f(b,'MEL')}");\n`;};
+Arduino.forBlock['blk_motor_pwm']=(b)=>{const p=f(b,'PIN');gs.pwm.add(p);return`analogWrite(${p}, (uint8_t)constrain(map(${v(b,'SPD')},0,100,0,255),0,255));\n`;};
+Arduino.forBlock['blk_motor_l298']=(b)=>{const in1=f(b,'IN1'),in2=f(b,'IN2'),dir=f(b,'DIR'),ena=f(b,'ENA'),spd=v(b,'SPD');gs.dout.add(in1);gs.dout.add(in2);gs.pwm.add(ena);if(dir==='fwd')return`digitalWrite(${in1}, HIGH); digitalWrite(${in2}, LOW);  analogWrite(${ena}, (uint8_t)map(${spd},0,100,0,255));\n`;if(dir==='bwd')return`digitalWrite(${in1}, LOW);  digitalWrite(${in2}, HIGH); analogWrite(${ena}, (uint8_t)map(${spd},0,100,0,255));\n`;return`digitalWrite(${in1}, LOW); digitalWrite(${in2}, LOW); analogWrite(${ena}, 0);\n`;};
+Arduino.forBlock['blk_servo']=(b)=>{gs.servo=true;return`_srv_${f(b,'PIN')}.write(constrain(${v(b,'ANG')},0,180));\n`;};
+Arduino.forBlock['blk_lm35']=(b)=>[`(int)((analogRead(${f(b,'PIN')}) * 5.0 * 100.0) / 1023.0)`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_fotores']=(b)=>[`(int)map(analogRead(${f(b,'PIN')}), 0, 1023, 0, 100)`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_ultrasonico']=(b)=>{gs.ultrasonic=true;const tr=f(b,'TRIG'),ec=f(b,'ECHO');return[`readUltrasonic(${tr}, ${ec})`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_joystick_x']=(b)=>[`map(analogRead(${f(b,'PIN')}), 0, 1023, 0, 255)`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_joystick_y']=(b)=>[`map(analogRead(${f(b,'PIN')}), 0, 1023, 0, 255)`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_sonido_nivel']=(b)=>[`map(analogRead(${f(b,'PIN')}), 0, 1023, 0, 255)`,Arduino.ORDER_ATOMIC];
+Arduino.forBlock['blk_lluvia']=(b)=>{const p=f(b,'PIN');gs.din.set(p,gs.din.get(p)||'INPUT');return[`(!digitalRead(${p}))`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_obstaculo']=(b)=>{const p=f(b,'PIN');gs.din.set(p,gs.din.get(p)||'INPUT');return[`(!digitalRead(${p}))`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_serial_enviar_num']=(b)=>{gs.serial=true;return`Serial.println(${v(b,'VAL')});\n`;};
+Arduino.forBlock['blk_serial_enviar_txt']=(b)=>{gs.serial=true;return`Serial.println(${vs(b,'TXT')});\n`;};
+Arduino.forBlock['blk_bt_pub_dig']=(b)=>{gs.bt=true;const p=f(b,'PIN');return`_btSoft.print("D${p}:"); _btSoft.println(digitalRead(${p}));\n`;};
+Arduino.forBlock['blk_bt_pub_ana']=(b)=>{gs.bt=true;const p=f(b,'PIN');return`_btSoft.print("${p}:"); _btSoft.println(analogRead(${p}));\n`;};
+Arduino.forBlock['blk_bt_pub_num']=(b)=>{gs.bt=true;return`_btSoft.println(${v(b,'VAL')});\n`;};
+Arduino.forBlock['blk_bt_pub_txt']=(b)=>{gs.bt=true;return`_btSoft.println(${vs(b,'TXT')});\n`;};
+Arduino.forBlock['blk_bt_var_dig']=(b)=>{gs.bt=true;return[`_bt_D${f(b,'PIN')}`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_bt_var_ana']=(b)=>{gs.bt=true;return[`_bt_${f(b,'PIN')}`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_bt_var_pwm']=(b)=>{gs.bt=true;return[`_bt_P${f(b,'PIN')}`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_bt_recibir']=()=>{gs.bt=true;return['_bt_rxVal',Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_bt_hay_dato']=()=>{gs.bt=true;return['_bt_newData',Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_sprite_set']=(b)=>{const nm=f(b,'NAME').replace(/\W/g,'_');gs.sprites.add(nm);gs.game=true;gs.lcd=true;return`_sp_${nm}_c=${v(b,'COL')}; _sp_${nm}_r=${v(b,'ROW')}; lcd.setCursor(_sp_${nm}_c,_sp_${nm}_r); lcd.write(byte(219));\n`;};
+Arduino.forBlock['blk_sprite_mover']=(b)=>{const nm=f(b,'NAME').replace(/\W/g,'_');gs.sprites.add(nm);gs.game=true;gs.lcd=true;return`lcd.setCursor(_sp_${nm}_c,_sp_${nm}_r); lcd.print(' '); _sp_${nm}_c=constrain(_sp_${nm}_c+(${v(b,'DC')}),0,19); _sp_${nm}_r=constrain(_sp_${nm}_r+(${v(b,'DR')}),0,3); lcd.setCursor(_sp_${nm}_c,_sp_${nm}_r); lcd.write(byte(219));\n`;};
+Arduino.forBlock['blk_sprite_col']=(b)=>{const nm=f(b,'NAME').replace(/\W/g,'_');gs.sprites.add(nm);gs.game=true;return[`_sp_${nm}_c`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_sprite_fila']=(b)=>{const nm=f(b,'NAME').replace(/\W/g,'_');gs.sprites.add(nm);gs.game=true;return[`_sp_${nm}_r`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_colision']=(b)=>{const a=f(b,'A').replace(/\W/g,'_'),bv=f(b,'B').replace(/\W/g,'_');gs.sprites.add(a);gs.sprites.add(bv);gs.game=true;return[`(_sp_${a}_c==_sp_${bv}_c && _sp_${a}_r==_sp_${bv}_r)`,Arduino.ORDER_EQUALITY];};
+Arduino.forBlock['blk_puntos_sumar']=(b)=>{gs.game=true;return`_score += ${v(b,'N')};\n`;};
+Arduino.forBlock['blk_vidas_restar']=(b)=>{gs.game=true;return`if(_lives>0) _lives -= ${v(b,'N')};\n`;};
+Arduino.forBlock['blk_game_over']=()=>{gs.game=true;gs.lcd=true;return`lcd.clear(); lcd.setCursor(2,1); lcd.print("** FIN DEL JUEGO **"); lcd.setCursor(0,2); lcd.print("Puntos:"); lcd.print(_score); while(1);\n`;};
+Arduino.forBlock['blk_get_puntos']=()=>{gs.game=true;return['_score',Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_get_vidas']=()=>{gs.game=true;return['_lives',Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_pin_write']=(b)=>{const p=f(b,'PIN');gs.dout.add(p);return`digitalWrite(${p}, ${f(b,'VAL')});\n`;};
+Arduino.forBlock['blk_pin_pwm_write']=(b)=>{const p=f(b,'PIN');gs.pwm.add(p);return`analogWrite(${p}, constrain(${v(b,'VAL')},0,255));\n`;};
+Arduino.forBlock['blk_pin_leer']=(b)=>{const p=f(b,'PIN');gs.din.set(p,gs.din.get(p)||'INPUT');return[`digitalRead(${p})`,Arduino.ORDER_ATOMIC];};
+Arduino.forBlock['blk_pin_analog_leer']=(b)=>[`analogRead(${f(b,'PIN')})`,Arduino.ORDER_ATOMIC];
+
+const TOOLBOX={kind:'categoryToolbox',contents:[
+{kind:'category',name:'🟡 Inicio',colour:'#E67E00',contents:[{kind:'block',type:'blk_al_iniciar'},{kind:'block',type:'blk_para_siempre'}]},
+{kind:'category',name:'🔧 Funciones',colour:'#117A65',contents:[{kind:'block',type:'blk_funcion_def'},{kind:'block',type:'blk_llamar_fun'},{kind:'block',type:'blk_retornar'}]},
+{kind:'category',name:'🔷 Control',colour:'#2980B9',contents:[{kind:'block',type:'blk_si'},{kind:'block',type:'blk_si_sino'},{kind:'block',type:'blk_repetir',inputs:{TIMES:{block:{type:'blk_num',fields:{NUM:10}}}}},{kind:'block',type:'blk_mientras'},{kind:'block',type:'blk_para_rango',inputs:{FROM:{block:{type:'blk_num',fields:{NUM:0}}},TO:{block:{type:'blk_num',fields:{NUM:9}}}}}]},
+{kind:'category',name:'🟩 Lógica',colour:'#27AE60',contents:[{kind:'block',type:'blk_comparar'},{kind:'block',type:'blk_y'},{kind:'block',type:'blk_o'},{kind:'block',type:'blk_no'}]},
+{kind:'category',name:'🔴 Variables',colour:'#E74C3C',contents:[{kind:'block',type:'blk_set_var',inputs:{VAL:{block:{type:'blk_num',fields:{NUM:0}}}}},{kind:'block',type:'blk_change_var',inputs:{DELTA:{block:{type:'blk_num',fields:{NUM:1}}}}},{kind:'block',type:'blk_get_var'},{kind:'block',type:'blk_set_mem'},{kind:'block',type:'blk_get_mem'}]},
+{kind:'category',name:'🟣 Matemática',colour:'#8E44AD',contents:[{kind:'block',type:'blk_num'},{kind:'block',type:'blk_texto'},{kind:'block',type:'blk_math_op'},{kind:'block',type:'blk_map_val'},{kind:'block',type:'blk_random',inputs:{MIN:{block:{type:'blk_num',fields:{NUM:0}}},MAX:{block:{type:'blk_num',fields:{NUM:100}}}}},{kind:'block',type:'blk_abs'},{kind:'block',type:'blk_constrain'}]},
+{kind:'category',name:'🟠 Entradas',colour:'#E67E22',contents:[{kind:'block',type:'blk_boton'},{kind:'block',type:'blk_analogico'},{kind:'block',type:'blk_adc_map'}]},
+{kind:'category',name:'⬛ Salidas',colour:'#2C3E50',contents:[{kind:'block',type:'blk_encender'},{kind:'block',type:'blk_apagar'},{kind:'block',type:'blk_pwm_q6',inputs:{PCT:{block:{type:'blk_num',fields:{NUM:50}}}}}]},
+{kind:'category',name:'⏱ Tiempo',colour:'#16A085',contents:[{kind:'block',type:'blk_esperar_ms',inputs:{MS:{block:{type:'blk_num',fields:{NUM:1000}}}}},{kind:'block',type:'blk_esperar_seg',inputs:{SEG:{block:{type:'blk_num',fields:{NUM:1}}}}},{kind:'block',type:'blk_millis'},{kind:'block',type:'blk_ton',inputs:{MS:{block:{type:'blk_num',fields:{NUM:1000}}}}},{kind:'block',type:'blk_toff',inputs:{MS:{block:{type:'blk_num',fields:{NUM:1000}}}}},{kind:'block',type:'blk_timer_listo'}]},
+{kind:'category',name:'🔢 Contadores',colour:'#8E44AD',contents:[{kind:'block',type:'blk_ctu',inputs:{PRESET:{block:{type:'blk_num',fields:{NUM:10}}}}},{kind:'block',type:'blk_ctd',inputs:{PRESET:{block:{type:'blk_num',fields:{NUM:10}}}}},{kind:'block',type:'blk_ctr'},{kind:'block',type:'blk_contador_val'},{kind:'block',type:'blk_contador_listo'}]},
+{kind:'category',name:'🔵 Pantalla LCD',colour:'#2980B9',contents:[{kind:'block',type:'blk_lcd_clear'},{kind:'block',type:'blk_lcd_texto'},{kind:'block',type:'blk_lcd_numero',inputs:{NUM:{block:{type:'blk_num',fields:{NUM:0}}}}},{kind:'block',type:'blk_lcd_cara'},{kind:'block',type:'blk_lcd_punto',inputs:{COL:{block:{type:'blk_num',fields:{NUM:0}}},ROW:{block:{type:'blk_num',fields:{NUM:0}}}}}]},
+{kind:'category',name:'🎵 Sonido',colour:'#1ABC9C',contents:[{kind:'block',type:'blk_tono',inputs:{FREQ:{block:{type:'blk_num',fields:{NUM:440}}},DUR:{block:{type:'blk_num',fields:{NUM:200}}}}},{kind:'block',type:'blk_nota',inputs:{DUR:{block:{type:'blk_num',fields:{NUM:200}}}}},{kind:'block',type:'blk_silencio'},{kind:'block',type:'blk_melodia'}]},
+{kind:'category',name:'⚙️ Motores',colour:'#7F8C8D',contents:[{kind:'block',type:'blk_motor_pwm',inputs:{SPD:{block:{type:'blk_num',fields:{NUM:50}}}}},{kind:'block',type:'blk_motor_l298',fields:{IN1:'8',IN2:'9',DIR:'fwd',ENA:'5'},inputs:{SPD:{block:{type:'blk_num',fields:{NUM:50}}}}},{kind:'block',type:'blk_servo',inputs:{ANG:{block:{type:'blk_num',fields:{NUM:90}}}}}]},
+{kind:'category',name:'📡 Sensores',colour:'#D35400',contents:[{kind:'block',type:'blk_lm35'},{kind:'block',type:'blk_fotores'},{kind:'block',type:'blk_ultrasonico'},{kind:'block',type:'blk_joystick_x'},{kind:'block',type:'blk_joystick_y'},{kind:'block',type:'blk_sonido_nivel'},{kind:'block',type:'blk_lluvia'},{kind:'block',type:'blk_obstaculo'}]},
+{kind:'category',name:'📻 Serial USB',colour:'#6C3483',contents:[{kind:'block',type:'blk_serial_enviar_num',inputs:{VAL:{block:{type:'blk_num',fields:{NUM:0}}}}},{kind:'block',type:'blk_serial_enviar_txt'}]},
+{kind:'category',name:'📶 Bluetooth HC-05',colour:'#1565C0',contents:[{kind:'block',type:'blk_bt_pub_dig'},{kind:'block',type:'blk_bt_pub_ana'},{kind:'block',type:'blk_bt_pub_num',inputs:{VAL:{block:{type:'blk_num',fields:{NUM:0}}}}},{kind:'block',type:'blk_bt_pub_txt'},{kind:'block',type:'blk_bt_var_dig'},{kind:'block',type:'blk_bt_var_ana'},{kind:'block',type:'blk_bt_var_pwm'},{kind:'block',type:'blk_bt_recibir'},{kind:'block',type:'blk_bt_hay_dato'}]},
+{kind:'category',name:'🎮 Juego',colour:'#CB4335',contents:[{kind:'block',type:'blk_sprite_set',inputs:{COL:{block:{type:'blk_num',fields:{NUM:0}}},ROW:{block:{type:'blk_num',fields:{NUM:3}}}}},{kind:'block',type:'blk_sprite_mover',inputs:{DC:{block:{type:'blk_num',fields:{NUM:1}}},DR:{block:{type:'blk_num',fields:{NUM:0}}}}},{kind:'block',type:'blk_sprite_col'},{kind:'block',type:'blk_sprite_fila'},{kind:'block',type:'blk_colision'},{kind:'block',type:'blk_puntos_sumar',inputs:{N:{block:{type:'blk_num',fields:{NUM:1}}}}},{kind:'block',type:'blk_vidas_restar',inputs:{N:{block:{type:'blk_num',fields:{NUM:1}}}}},{kind:'block',type:'blk_game_over'},{kind:'block',type:'blk_get_puntos'},{kind:'block',type:'blk_get_vidas'}]},
+{kind:'category',name:'📌 Pines',colour:'#5D6D7E',contents:[{kind:'block',type:'blk_pin_write'},{kind:'block',type:'blk_pin_pwm_write',inputs:{VAL:{block:{type:'blk_num',fields:{NUM:128}}}}},{kind:'block',type:'blk_pin_leer'},{kind:'block',type:'blk_pin_analog_leer'}]}
+]};
+
+const workspace=Blockly.inject('blocklyDiv',{toolbox:TOOLBOX,scrollbars:true,trashcan:true,zoom:{controls:true,wheel:true,startScale:1.0,maxScale:2,minScale:0.3},grid:{spacing:20,length:3,colour:'#ccc',snap:true},theme:Blockly.Themes.Zelos||Blockly.Themes.Classic,sounds:false});
+
+const defaultXml=`<xml xmlns="https://developers.google.com/blockly/xml"><block type="blk_al_iniciar" x="40" y="40"></block><block type="blk_para_siempre" x="40" y="180"></block></xml>`;
+Blockly.Xml.domToWorkspace(Blockly.utils.xml.textToDom(defaultXml),workspace);
+workspace.addChangeListener(()=>{updatePreview()});
+
+function generateSketch(){
+  gs.reset();
+  const tops=workspace.getTopBlocks(true);
+  let setupCode='',loopCode='';
+  const funcs=[];
+  for(const b of tops){
+    if(b.type==='blk_al_iniciar')setupCode=Arduino.statementToCode(b,'BODY')||'';
+    else if(b.type==='blk_para_siempre')loopCode=Arduino.statementToCode(b,'BODY')||'';
+    else if(b.type==='blk_funcion_def'){const nm=(b.getFieldValue('NAME')||'miCodigo').replace(/\W/g,'_');funcs.push({name:nm,code:Arduino.statementToCode(b,'BODY')||''});}
+  }
+  return buildSketch(setupCode,loopCode,funcs);
+}
+
+function buildSketch(setupCode,loopCode,funcs){
+  const L=[];
+  L.push('// ================================================================');
+  L.push('// uPLC-Web — Sketch generado automáticamente');
+  L.push('// ETI Patagonia - prof.martintorres@educ.ar');
+  L.push('// ================================================================');
+  L.push('// HARDWARE: Arduino UNO');
+  L.push('// Entradas digitales : D2-D13 (libre asignación)');
+  L.push('// Salidas digitales  : D2-D13 (libre asignación)');
+  L.push('// PWM                : D3, D5, D6, D9, D10, D11');
+  L.push('// ADC                : A0, A1, A2, A3  (A4=SDA A5=SCL reservados I2C)');
+  L.push('// LCD I2C            : A4(SDA) A5(SCL) addr 0x27');
+  L.push('// Buzzer             : D8 (fijo)');
+  L.push('// BT HC-05            : RX=D10  TX=D11  (SoftwareSerial @9600)');
+  L.push('// Motor L298         : IN1=D4  IN2=D7  ENA=D5(PWM)');
+  L.push('');
+  L.push('#include <Wire.h>');
+  if(gs.lcd)L.push('#include <LiquidCrystal_I2C.h>');
+  if(gs.servo)L.push('#include <Servo.h>');
+  if(gs.sserial)L.push('#include <SoftwareSerial.h>');
+  if(gs.bt)L.push('#include <SoftwareSerial.h>');
+  L.push('');
+  if(gs.lcd)L.push('LiquidCrystal_I2C lcd(0x27, 20, 4);');
+  if(gs.sserial){L.push('SoftwareSerial _ssoft(10, 11); // RX=D10 TX=D11');L.push('int _radioVal = 0;');}
+  if(gs.bt){L.push('SoftwareSerial _btSoft(10, 11); // BT HC-05 — RX=D10  TX=D11');L.push('int _bt_D2=0,_bt_D3=0,_bt_D4=0,_bt_D5=0,_bt_D6=0,_bt_D7=0;');L.push('int _bt_D8=0,_bt_D9=0,_bt_D10=0,_bt_D11=0,_bt_D12=0,_bt_D13=0;');L.push('int _bt_A0=0,_bt_A1=0,_bt_A2=0,_bt_A3=0;');L.push('int _bt_P3=0,_bt_P5=0,_bt_P6=0,_bt_P9=0,_bt_P10=0,_bt_P11=0;');L.push('int _bt_rxVal=0; bool _bt_newData=false; String _bt_rxId="";');}
+  if(gs.servo){L.push('Servo _srv_3, _srv_5, _srv_6, _srv_9, _srv_10, _srv_11;');}
+  L.push('');
+  if(gs.vars.size){L.push('// === Variables ===');L.push('int '+[...gs.vars].join('=0, ')+'=0;');}
+  if(gs.mems.size){L.push('// === Memorias ===');L.push('bool '+[...gs.mems].join('=false, ')+'=false;');}
+  if(gs.timers.size){L.push('// === Timers ===');for(const t of gs.timers){const n=t[1];L.push(`unsigned long _T${n}_start=0; bool _T${n}_done=false,_T${n}_en=true,_T${n}_prev=false;`);}}
+  if(gs.counters.size){L.push('// === Contadores ===');for(const c of gs.counters){const n=c[1];L.push(`int _C${n}_count=0; bool _C${n}_done=false,_C${n}_prev_ctu=false,_C${n}_prev_ctd=false;`);}}
+  if(gs.game){L.push('// === Juego ===');L.push('int _score=0; int _lives=3;');for(const s of gs.sprites)L.push(`int _sp_${s}_c=0, _sp_${s}_r=0;`);}
+  if(gs.face&&gs.lcd){L.push('');L.push('byte _chr_eye_open[8]    = {0x0E,0x1F,0x15,0x1F,0x0E,0x00,0x00,0x00};');L.push('byte _chr_eye_closed[8]  = {0x00,0x00,0x1F,0x00,0x00,0x00,0x00,0x00};');L.push('byte _chr_mouth_happy[8] = {0x00,0x11,0x0A,0x04,0x00,0x00,0x00,0x00};');L.push('byte _chr_mouth_sad[8]   = {0x00,0x04,0x0A,0x11,0x00,0x00,0x00,0x00};');L.push('byte _chr_mouth_surp[8]  = {0x0E,0x11,0x11,0x11,0x0E,0x00,0x00,0x00};');L.push('uint8_t       _face_state  = 0;');L.push('uint8_t       _prev_face   = 255;');L.push('unsigned long _blink_timer = 0;');L.push('bool          _is_blinking = false;');L.push('');L.push('void drawFace() {');L.push('  byte eye   = _is_blinking ? 1 : 0;');L.push('  byte mouth = (_face_state==0)?2:(_face_state==1)?3:4;');L.push('  lcd.setCursor(0,0); lcd.write(eye); lcd.print(" "); lcd.write(eye);');L.push('  lcd.setCursor(0,1); lcd.print(" "); lcd.write(mouth); lcd.print(" ");');L.push('}');L.push('void actualizarFace() {');L.push('  if(_face_state!=_prev_face){ _prev_face=_face_state; drawFace(); }');L.push('}');}
+  if(gs.ultrasonic){L.push('');L.push('long readUltrasonic(int trig, int echo){');L.push('  digitalWrite(trig, LOW); delayMicroseconds(2);');L.push('  digitalWrite(trig, HIGH); delayMicroseconds(10);');L.push('  digitalWrite(trig, LOW);');L.push('  long dur = pulseIn(echo, HIGH, 30000);');L.push('  return dur / 58;');L.push('}');}
+  if(gs.buzzer){L.push('');L.push('void playMelody(const char* mel){');L.push('  int bday[]={262,262,294,262,349,330,0,-1};');L.push('  int mario[]={659,659,0,659,0,523,659,784,0,392,-1};');L.push('  int* notes = bday;');L.push('  if(strcmp(mel,"mario")==0) notes=mario;');L.push('  for(int i=0; notes[i]!=-1; i++){');L.push('    if(notes[i]==0) noTone(8); else tone(8,notes[i],180);');L.push('    delay(200); noTone(8); delay(40);');L.push('  }');L.push('}');}
+  if(gs.game&&gs.lcd){L.push('');L.push('void setLCDPoint(int c, int r, int s){');L.push('  lcd.setCursor(constrain(c,0,19), constrain(r,0,3));');L.push('  lcd.print(s? char(219) : char(32));');L.push('}');}
+  L.push('');
+  for(const fn of funcs)L.push(`void ${fn.name}();`);
+  if(funcs.length)L.push('');
+  L.push('void setup() {');
+  if(gs.serial||gs.sserial||gs.bt)L.push('  Serial.begin(9600);');
+  if(gs.sserial)L.push('  _ssoft.begin(9600);');
+  if(gs.bt)L.push('  _btSoft.begin(9600);');
+  if(gs.lcd){L.push('  lcd.init();');L.push('  lcd.backlight();');L.push('  lcd.clear();');if(gs.face){L.push('  lcd.createChar(0,_chr_eye_open);  lcd.createChar(1,_chr_eye_closed);');L.push('  lcd.createChar(2,_chr_mouth_happy); lcd.createChar(3,_chr_mouth_sad); lcd.createChar(4,_chr_mouth_surp);');L.push('  drawFace();');L.push('  _blink_timer = millis();');}}
+  if(gs.servo){L.push('  _srv_3.attach(3); _srv_5.attach(5); _srv_6.attach(6);');L.push('  _srv_9.attach(9); _srv_10.attach(10); _srv_11.attach(11);');}
+  if(gs.din.size){L.push('  // Entradas digitales');for(const[p,pull]of[...gs.din.entries()].sort((a,b)=>+a[0]-+b[0]))L.push(`  pinMode(${p}, ${pull});`);}
+  if(gs.dout.size){L.push('  // Salidas digitales');for(const p of[...gs.dout].sort((a,b)=>+a-+b))L.push(`  pinMode(${p}, OUTPUT);`);}
+  if(gs.pwm.size){L.push('  // Pines PWM');for(const p of[...gs.pwm].sort((a,b)=>+a-+b)){if(!gs.dout.has(p))L.push(`  pinMode(${p}, OUTPUT);`);}}
+  if(setupCode.trim()){L.push('  // — Al iniciar —');for(const ln of setupCode.split('\n'))if(ln.trim())L.push('  '+ln);}
+  L.push('}');
+  L.push('');
+  L.push('void loop() {');
+  if(gs.sserial){L.push('  if(_ssoft.available()>0){ String d=_ssoft.readStringUntil(\'\\n\'); _radioVal=d.toInt(); }');}
+  if(gs.bt){L.push('  _bt_newData = false;');L.push('  if (_btSoft.available() > 0) {');L.push('    String _btLine = _btSoft.readStringUntil(\'\\n\');');L.push('    _btLine.trim();');L.push('    int _c = _btLine.indexOf(\':\');');L.push('    if (_c > 0) {');L.push('      _bt_rxId  = _btLine.substring(0, _c);');L.push('      _bt_rxVal = _btLine.substring(_c + 1).toInt();');L.push('      _bt_newData = true;');L.push('      if      (_bt_rxId=="D2")  _bt_D2  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D3")  _bt_D3  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D4")  _bt_D4  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D5")  _bt_D5  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D6")  _bt_D6  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D7")  _bt_D7  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D8")  _bt_D8  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D9")  _bt_D9  = _bt_rxVal;');L.push('      else if (_bt_rxId=="D10") _bt_D10 = _bt_rxVal;');L.push('      else if (_bt_rxId=="D11") _bt_D11 = _bt_rxVal;');L.push('      else if (_bt_rxId=="D12") _bt_D12 = _bt_rxVal;');L.push('      else if (_bt_rxId=="D13") _bt_D13 = _bt_rxVal;');L.push('      else if (_bt_rxId=="A0")  _bt_A0  = _bt_rxVal;');L.push('      else if (_bt_rxId=="A1")  _bt_A1  = _bt_rxVal;');L.push('      else if (_bt_rxId=="A2")  _bt_A2  = _bt_rxVal;');L.push('      else if (_bt_rxId=="A3")  _bt_A3  = _bt_rxVal;');L.push('      else if (_bt_rxId=="P3")  _bt_P3  = _bt_rxVal;');L.push('      else if (_bt_rxId=="P5")  _bt_P5  = _bt_rxVal;');L.push('      else if (_bt_rxId=="P6")  _bt_P6  = _bt_rxVal;');L.push('      else if (_bt_rxId=="P9")  _bt_P9  = _bt_rxVal;');L.push('      else if (_bt_rxId=="P10") _bt_P10 = _bt_rxVal;');L.push('      else if (_bt_rxId=="P11") _bt_P11 = _bt_rxVal;');L.push('    }');L.push('  }');}
+  if(gs.face&&gs.lcd){L.push('  { unsigned long _nf=millis();');L.push('    if(!_is_blinking && (_nf-_blink_timer>=4000UL)){ _is_blinking=true;  _blink_timer=_nf;      drawFace(); }');L.push('    else if(_is_blinking && (_nf-_blink_timer>=200UL)){ _is_blinking=false; _blink_timer=millis(); drawFace(); }');L.push('    if(_face_state!=_prev_face){ _prev_face=_face_state; drawFace(); } }');}
+  if(loopCode.trim()){L.push('  // — Para siempre —');for(const ln of loopCode.split('\n'))if(ln.trim())L.push('  '+ln);}
+  L.push('  delay(10);');
+  L.push('}');
+  for(const fn of funcs){L.push('');L.push(`void ${fn.name}() {`);for(const ln of(fn.code||'').split('\n'))if(ln.trim())L.push('  '+ln);L.push('}');}
+  L.push('');
+  return L.join('\n');
+}
+
+function getCode(){return generateSketch();}
+function getXML(){const dom=Blockly.Xml.workspaceToDom(workspace);return Blockly.Xml.domToText(dom);}
+
+function loadXML(xmlText){try{workspace.clear();const dom=Blockly.utils.xml.textToDom(xmlText);Blockly.Xml.domToWorkspace(dom,workspace);updatePreview();}catch(e){console.error('loadXML error:',e);}}
+function clearWorkspace(){workspace.clear();updatePreview();}
+
+let _previewTimeout=null;
+function updatePreview(){clearTimeout(_previewTimeout);_previewTimeout=setTimeout(()=>{try{const code=generateSketch();document.getElementById('codePreview').textContent=code;}catch(e){document.getElementById('codePreview').textContent='// Error generando código:\n// '+e.message;}},300);}
+
+function setStatus(msg){document.getElementById('statusMsg').textContent=msg;}
+
+function copyCode(){
+  const code=document.getElementById('codePreview').textContent;
+  navigator.clipboard.writeText(code).then(()=>{setStatus('Código copiado al portapapeles');setTimeout(()=>setStatus('Listo'),2000);});
+}
+
+document.getElementById('btn-new').onclick=()=>{if(confirm('¿Empezar un programa nuevo?')){loadXML(defaultXml);setStatus('Nuevo programa');}};
+document.getElementById('btn-open').onclick=()=>{document.getElementById('fileInput').click();};
+document.getElementById('fileInput').onchange=(e)=>{const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);loadXML(data.blockly_xml||data);setStatus('Proyecto cargado: '+f.name);}catch{try{loadXML(ev.target.result);setStatus('Proyecto cargado: '+f.name);}catch(e2){alert('Error al abrir: '+e2.message);}}};reader.readAsText(f);e.target.value='';};
+document.getElementById('btn-gen').onclick=()=>{const code=getCode();const blob=new Blob([code],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='programa.ino';a.click();setStatus('Sketch .ino descargado');};
+document.getElementById('btn-clear').onclick=()=>{if(confirm('¿Borrar todos los bloques?')){clearWorkspace();setStatus('Limpiar programa');}};
+
+updatePreview();
+setStatus('uPLC-Web listo — arrastrá bloques para programar');
+</script>
+</body>
+</html>
