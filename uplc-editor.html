@@ -19,7 +19,15 @@
   #toolbar button{padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;color:white;white-space:nowrap}
   #btn-new{background:#E74C3C}#btn-open{background:#27AE60}
   #btn-gen{background:#8E44AD;font-size:13px}#btn-clear{background:#7F8C8D}
+  #btn-examples{background:#E67E22}
+  #btn-connect{background:#1ABC9C}
+  #btn-upload{background:#2980B9;font-size:13px}
+  #btn-refresh{background:#5D6D7E}
   #btn-back{background:#5D6D7E}
+  #examplesModal .modal-body{max-height:60vh;overflow-y:auto}
+  #examplesModal .list-group-item{cursor:pointer;padding:8px 12px;font-size:13px}
+  #examplesModal .list-group-item:hover{background:#f0f4ff}
+  #examplesModal .list-group-item small{color:#6c757d}
   #toolbar span{color:white;font-weight:bold;font-size:14px;margin-right:6px}
   select.board-select{padding:4px 8px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer}
   input[type=file]{display:none}
@@ -57,6 +65,7 @@
   <button id="btn-back" onclick="location.href='app.html'"><i class="bi bi-arrow-left"></i> Volver</button>
   <button id="btn-new">📄 Nuevo</button>
   <button id="btn-open">📂 Abrir</button>
+  <button id="btn-examples">📚 Ejemplos</button>
   <button id="btn-gen">⚡ Generar .ino</button>
   <button id="btn-clear">🗑 Limpiar</button>
   <select class="board-select" id="boardSelect">
@@ -64,6 +73,12 @@
     <option value="nano">Arduino NANO</option>
     <option value="nano_old">NANO (bootloader viejo)</option>
   </select>
+  <select class="board-select" id="portSelect" style="min-width:100px">
+    <option value="">-- Puerto --</option>
+  </select>
+  <button id="btn-refresh" title="Buscar puertos">🔄</button>
+  <button id="btn-connect" title="Conectar al bridge">🔌 Bridge</button>
+  <button id="btn-upload" disabled>📤 Subir al Arduino</button>
   <input type="file" id="fileInput" accept=".uplcj,.xml">
 </div>
 
@@ -84,6 +99,30 @@
   <span>uPLC-Web v1.0 — ETI Patagonia</span>
 </div>
 
+<div class="modal fade" id="examplesModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#E67E22;color:white">
+        <h5 class="modal-title"><i class="bi bi-book me-2"></i>Ejemplos uPLC-Web</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Seleccioná la versión de la placa:</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="boardVersion" id="v1Radio" value="v1" checked>
+            <label class="btn btn-outline-primary" for="v1Radio">PlacaV1</label>
+            <input type="radio" class="btn-check" name="boardVersion" id="v2Radio" value="v2">
+            <label class="btn btn-outline-primary" for="v2Radio">PlacaV2</label>
+          </div>
+        </div>
+        <div id="examplesList" class="list-group"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/blockly@10.4.3/blockly.min.js"></script>
 <script src="https://unpkg.com/blockly@10.4.3/msg/es.js"></script>
 <script>
@@ -429,6 +468,216 @@ document.getElementById('btn-open').onclick=()=>{document.getElementById('fileIn
 document.getElementById('fileInput').onchange=(e)=>{const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=(ev)=>{try{const data=JSON.parse(ev.target.result);loadXML(data.blockly_xml||data);setStatus('Proyecto cargado: '+f.name);}catch{try{loadXML(ev.target.result);setStatus('Proyecto cargado: '+f.name);}catch(e2){alert('Error al abrir: '+e2.message);}}};reader.readAsText(f);e.target.value='';};
 document.getElementById('btn-gen').onclick=()=>{const code=getCode();const blob=new Blob([code],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='programa.ino';a.click();setStatus('Sketch .ino descargado');};
 document.getElementById('btn-clear').onclick=()=>{if(confirm('¿Borrar todos los bloques?')){clearWorkspace();setStatus('Limpiar programa');}};
+
+const EXAMPLES = {
+  v1: [
+    {name:'01_Blink', title:'LED Parpadeante', desc:'Hacer parpadear el LED integrado'},
+    {name:'02_boton_led', title:'Botón y LED', desc:'Encender LED con un botón'},
+    {name:'03_contador_lcd', title:'Contador LCD', desc:'Contador mostrado en pantalla LCD'},
+    {name:'04_termometro_lm35', title:'Termómetro LM35', desc:'Leer temperatura con sensor LM35'},
+    {name:'05_semaforo', title:'Semáforo', desc:'Simular un semáforo con 3 LEDs'},
+    {name:'06_control_motor_puenteH', title:'Motor Puente H', desc:'Controlar motor con L298N'},
+    {name:'07_control_velocidad_motorDC', title:'Velocidad Motor DC', desc:'Controlar velocidad con PWM'},
+    {name:'08_control_servo', title:'Servo Motor', desc:'Mover un servo con potenciómetro'},
+    {name:'08_control_varios_servos', title:'Varios Servos', desc:'Controlar múltiples servos'},
+    {name:'09_control_servo_LCD', title:'Servo + LCD', desc:'Servo con lectura en LCD'},
+    {name:'10_piano', title:'Piano', desc:'Piano con botones'},
+    {name:'11_piano_con_notas', title:'Piano con Notas', desc:'Piano con diferentes notas musicales'},
+    {name:'12_luces_automaticas', title:'Luces Automáticas', desc:'Luces con sensor de luz'},
+    {name:'13_LedRGB_demo1', title:'LED RGB', desc:'Controlar un LED RGB'},
+    {name:'15_medidor_luz', title:'Medidor de Luz', desc:'Medir intensidad de luz'},
+    {name:'16_melodias', title:'Melodías', desc:'Reproducir melodías con buzzer'},
+    {name:'17_juego_azar_dados', title:'Juego Dados', desc:'Simular dados al azar'},
+    {name:'18_juego_dados_100', title:'Dados hasta 100', desc:'Juego de dados hasta 100'},
+    {name:'19_juego_esquivar', title:'Juego Esquivar', desc:'Juego de esquivar obstáculos'},
+    {name:'20_timer_luz_crepuscular', title:'Luz Crepuscular', desc:'Timer para luz crepuscular'},
+    {name:'21_alarma_distancia', title:'Alarma Distancia', desc:'Alarma por distancia ultrasónica'},
+    {name:'22_In_Out_PullUP', title:'Pull-Up', desc:'Entradas con Pull-Up interno'},
+    {name:'23_subprogramas', title:'Subprogramas', desc:'Uso de funciones en Arduino'},
+    {name:'24_carga_fotovoltaica', title:'Carga Fotovoltaica', desc:'Carga solar con batería'},
+    {name:'25_riego_humedad', title:'Riego por Humedad', desc:'Sistema de riego automático'},
+    {name:'26_hidroponia_ciclica', title:'Hidroponía', desc:'Sistema hidropónico cíclico'},
+    {name:'27_tanque_cisterna', title:'Tanque Cisterna', desc:'Control de nivel de tanque'},
+    {name:'28_tanque_cisterna_latch', title:'Tanque con Latch', desc:'Tanque con latch'},
+    {name:'29_dia_noche', title:'Día y Noche', desc:'Simulación día/noche'},
+    {name:'30_monitor_bateria', title:'Monitor Batería', desc:'Monitorear nivel de batería'},
+    {name:'31_control_termico', title:'Control Térmico', desc:'Control de temperatura'},
+    {name:'32_acceso_simple', title:'Acceso Simple', desc:'Control de acceso básico'},
+    {name:'32_robot_linea_L298', title:'Robot Línea', desc:'Robot seguidor de línea'},
+    {name:'33_robot_laberinto_L298', title:'Robot Laberinto', desc:'Robot de laberinto'},
+    {name:'33_sistema_integrado', title:'Sistema Integrado', desc:'Sistema con múltiples sensores'}
+  ],
+  v2: [
+    {name:'01_Blink', title:'LED Parpadeante', desc:'Hacer parpadear el LED integrado'},
+    {name:'02_boton_led', title:'Botón y LED', desc:'Encender LED con un botón'},
+    {name:'03_contador_lcd', title:'Contador LCD', desc:'Contador mostrado en pantalla LCD'},
+    {name:'04_termometro_lm35', title:'Termómetro LM35', desc:'Leer temperatura con sensor LM35'},
+    {name:'05_semaforo', title:'Semáforo', desc:'Simular un semáforo con 3 LEDs'},
+    {name:'06_control_motor_puenteH', title:'Motor Puente H', desc:'Controlar motor con L298N'},
+    {name:'07_control_velocidad_motorDC', title:'Velocidad Motor DC', desc:'Controlar velocidad con PWM'},
+    {name:'08_control_servo', title:'Servo Motor', desc:'Mover un servo con potenciómetro'},
+    {name:'08_control_varios_servos', title:'Varios Servos', desc:'Controlar múltiples servos'},
+    {name:'09_control_servo_LCD', title:'Servo + LCD', desc:'Servo con lectura en LCD'},
+    {name:'10_piano', title:'Piano', desc:'Piano con botones'},
+    {name:'11_piano_con_notas', title:'Piano con Notas', desc:'Piano con diferentes notas musicales'},
+    {name:'12_luces_automaticas', title:'Luces Automáticas', desc:'Luces con sensor de luz'},
+    {name:'13_LedRGB_demo1', title:'LED RGB', desc:'Controlar un LED RGB'},
+    {name:'15_medidor_luz', title:'Medidor de Luz', desc:'Medir intensidad de luz'},
+    {name:'16_melodias', title:'Melodías', desc:'Reproducir melodías con buzzer'},
+    {name:'17_juego_azar_dados', title:'Juego Dados', desc:'Simular dados al azar'},
+    {name:'18_juego_dados_100', title:'Dados hasta 100', desc:'Juego de dados hasta 100'},
+    {name:'19_juego_esquivar', title:'Juego Esquivar', desc:'Juego de esquivar obstáculos'},
+    {name:'20_timer_luz_crepuscular', title:'Luz Crepuscular', desc:'Timer para luz crepuscular'},
+    {name:'21_alarma_distancia', title:'Alarma Distancia', desc:'Alarma por distancia ultrasónica'},
+    {name:'22_In_Out_PullUP', title:'Pull-Up', desc:'Entradas con Pull-Up interno'},
+    {name:'23_subprogramas', title:'Subprogramas', desc:'Uso de funciones en Arduino'},
+    {name:'24_carga_fotovoltaica', title:'Carga Fotovoltaica', desc:'Carga solar con batería'},
+    {name:'25_riego_humedad', title:'Riego por Humedad', desc:'Sistema de riego automático'},
+    {name:'26_hidroponia_ciclica', title:'Hidroponía', desc:'Sistema hidropónico cíclico'},
+    {name:'27_tanque_cisterna', title:'Tanque Cisterna', desc:'Control de nivel de tanque'},
+    {name:'28_tanque_cisterna_latch', title:'Tanque con Latch', desc:'Tanque con latch'},
+    {name:'29_dia_noche', title:'Día y Noche', desc:'Simulación día/noche'},
+    {name:'30_monitor_bateria', title:'Monitor Batería', desc:'Monitorear nivel de batería'},
+    {name:'31_control_termico', title:'Control Térmico', desc:'Control de temperatura'},
+    {name:'32_acceso_simple', title:'Acceso Simple', desc:'Control de acceso básico'},
+    {name:'33_sistema_integrado', title:'Sistema Integrado', desc:'Sistema con múltiples sensores'}
+  ]
+};
+
+function renderExamples() {
+  const ver = document.querySelector('input[name="boardVersion"]:checked').value;
+  const list = document.getElementById('examplesList');
+  const items = EXAMPLES[ver] || [];
+  list.innerHTML = items.map(ex =>
+    `<button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" data-name="${ex.name}">
+      <div><strong>${ex.title}</strong><br><small>${ex.desc}</small></div>
+      <i class="bi bi-chevron-right"></i>
+    </button>`
+  ).join('');
+  list.querySelectorAll('button').forEach(btn => {
+    btn.onclick = () => loadExample(ver, btn.dataset.name);
+  });
+}
+
+async function loadExample(version, name) {
+  try {
+    const resp = await fetch(`ejemplos/${version}/${name}.uplcj`);
+    if (!resp.ok) throw new Error('No se pudo cargar el ejemplo');
+    const text = await resp.text();
+    const data = JSON.parse(text);
+    loadXML(data.blockly_xml || data);
+    bootstrap.Modal.getInstance(document.getElementById('examplesModal')).hide();
+    setStatus('Ejemplo cargado: ' + name);
+  } catch (e) {
+    alert('Error al cargar ejemplo: ' + e.message);
+  }
+}
+
+document.getElementById('btn-examples').onclick = () => {
+  renderExamples();
+  new bootstrap.Modal(document.getElementById('examplesModal')).show();
+};
+document.querySelectorAll('input[name="boardVersion"]').forEach(r => r.onchange = renderExamples);
+
+let bridgeWs = null;
+let bridgeConnected = false;
+
+function connectBridge() {
+  if (bridgeWs && bridgeWs.readyState === WebSocket.OPEN) {
+    bridgeWs.close();
+    return;
+  }
+  setStatus('Conectando al bridge...');
+  bridgeWs = new WebSocket('ws://localhost:8765');
+
+  bridgeWs.onopen = () => {
+    bridgeConnected = true;
+    document.getElementById('btn-connect').textContent = '🔌 Desconectar';
+    document.getElementById('btn-connect').style.background = '#E74C3C';
+    document.getElementById('btn-upload').disabled = false;
+    setStatus('Bridge conectado — listo para compilar y subir');
+    refreshPorts();
+  };
+
+  bridgeWs.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'boards') {
+      const sel = document.getElementById('portSelect');
+      sel.innerHTML = '<option value="">-- Puerto --</option>';
+      if (msg.boards && msg.boards.length) {
+        msg.boards.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b.port;
+          opt.dataset.fqbn = b.fqbn;
+          opt.textContent = `${b.port} — ${b.board}`;
+          sel.appendChild(opt);
+        });
+        setStatus(`${msg.boards.length} placa(s) detectada(s)`);
+      } else {
+        setStatus('No se detectaron placas. Conectá una por USB.');
+      }
+    }
+    if (msg.type === 'status') {
+      setStatus(msg.message);
+    }
+    if (msg.type === 'result') {
+      if (msg.success) {
+        setStatus('✅ ¡Upload completado!');
+        alert('¡Sketch subido al Arduino correctamente!');
+      } else {
+        const where = msg.step === 'compile' ? 'COMPILACIÓN' : 'UPLOAD';
+        setStatus(`❌ Error en ${where}`);
+        alert(`Error en ${where}:\n\n${msg.error}`);
+      }
+      document.getElementById('btn-upload').disabled = false;
+      document.getElementById('btn-upload').textContent = '📤 Subir al Arduino';
+    }
+  };
+
+  bridgeWs.onclose = () => {
+    bridgeConnected = false;
+    document.getElementById('btn-connect').textContent = '🔌 Bridge';
+    document.getElementById('btn-connect').style.background = '#1ABC9C';
+    document.getElementById('btn-upload').disabled = true;
+    document.getElementById('portSelect').innerHTML = '<option value="">-- Puerto --</option>';
+    setStatus('Bridge desconectado');
+  };
+
+  bridgeWs.onerror = () => {
+    alert('No se pudo conectar al uPLC-Bridge.\n\n¿Está corriendo?\nAbrilo desde el Menú Inicio o ejecutá iniciar.bat');
+  };
+}
+
+function refreshPorts() {
+  if (bridgeWs && bridgeWs.readyState === WebSocket.OPEN) {
+    bridgeWs.send(JSON.stringify({ type: 'list' }));
+    setStatus('Buscando placas...');
+  }
+}
+
+function uploadToArduino() {
+  if (!bridgeWs || bridgeWs.readyState !== WebSocket.OPEN) {
+    alert('No hay conexión con el bridge.');
+    return;
+  }
+  const port = document.getElementById('portSelect').value;
+  if (!port) {
+    alert('Seleccioná un puerto.');
+    return;
+  }
+  const fqbn = document.getElementById('portSelect').selectedOptions[0]?.dataset.fqbn || 'arduino:avr:uno';
+  const code = generateSketch();
+
+  document.getElementById('btn-upload').disabled = true;
+  document.getElementById('btn-upload').textContent = '⏳ Compilando y subiendo...';
+  setStatus('Compilando...');
+
+  bridgeWs.send(JSON.stringify({ type: 'upload', code, fqbn, port }));
+}
+
+document.getElementById('btn-connect').onclick = connectBridge;
+document.getElementById('btn-refresh').onclick = refreshPorts;
+document.getElementById('btn-upload').onclick = uploadToArduino;
 
 updatePreview();
 setStatus('uPLC-Web listo — arrastrá bloques para programar');
