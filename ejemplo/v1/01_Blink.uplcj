@@ -1,0 +1,6 @@
+{
+  "version": "6",
+  "mode": "blocks",
+  "project_name": "Blink",
+  "blockly_xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"blk_al_iniciar\" id=\"kx_wH3FIBw8=lhIUL{E[\" x=\"40\" y=\"40\"><statement name=\"BODY\"><block type=\"blk_apagar\" id=\":ZM!{*L(_/9-~yuf!P5V\"><field name=\"OUT\">13</field></block></statement></block><block type=\"blk_para_siempre\" id=\"mYt]/{6^r[1O*o/e#][0\" x=\"40\" y=\"180\"><statement name=\"BODY\"><block type=\"blk_encender\" id=\";kD@.lbuWVrb5K`%!erW\"><field name=\"OUT\">13</field><next><block type=\"blk_esperar_ms\" id=\"jDiBot(1$,}vq#m}|wcz\"><value name=\"MS\"><block type=\"blk_num\" id=\"E:xC=*F$OQN,^c?!/gT)\"><field name=\"NUM\">800</field></block></value><next><block type=\"blk_apagar\" id=\"xT={=_(4RU.KQS058+-3\"><field name=\"OUT\">13</field><next><block type=\"blk_esperar_ms\" id=\"2XDmjY]pSZUA-54R%7eh\"><value name=\"MS\"><block type=\"blk_num\" id=\":P,pW/S%y8NR*cZmz;eI\"><field name=\"NUM\">800</field></block></value></block></next></block></next></block></next></block></statement></block></xml>"
+}
