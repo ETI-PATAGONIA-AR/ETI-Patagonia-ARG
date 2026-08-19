@@ -1,0 +1,6 @@
+{
+  "version": "6",
+  "mode": "blocks",
+  "project_name": "boton_led",
+  "blockly_xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"blk_al_iniciar\" id=\"B~:$v#p?l@ZjnA{{RuNp\" x=\"40\" y=\"40\"><statement name=\"BODY\"><block type=\"blk_apagar\" id=\"*nF?.8Ev-t(BQUI6pppo\"><field name=\"OUT\">Q1</field></block></statement></block><block type=\"blk_para_siempre\" id=\"AcP]9[$Tll-FagnKE6YX\" x=\"40\" y=\"160\"><statement name=\"BODY\"><block type=\"blk_si_sino\" id=\"qg.-]q%npM3VL8q5un8n\"><value name=\"COND\"><block type=\"blk_boton\" id=\"cFvlfX5pXkqMrj]eHy;x\"><field name=\"IN\">I1</field></block></value><statement name=\"DO\"><block type=\"blk_encender\" id=\"lu/},3fN|[Nq)*98i(kH\"><field name=\"OUT\">Q1</field></block></statement><statement name=\"ELSE\"><block type=\"blk_apagar\" id=\"/k23GZ)FXyOUu$GPfPj?\"><field name=\"OUT\">Q1</field></block></statement></block></statement></block></xml>"
+}

@@ -1,0 +1,6 @@
+{
+  "version": "6",
+  "mode": "blocks",
+  "project_name": "16_melodias",
+  "blockly_xml": "<xml xmlns=\"https://developers.google.com/blockly/xml\"><block type=\"blk_al_iniciar\" id=\"+7niS8S{;o{?f8C/6]lB\" x=\"40\" y=\"40\"><statement name=\"BODY\"><block type=\"blk_lcd_clear\" id=\"M%=clD^%i?;w.Xgd*rc:\"></block></statement></block><block type=\"blk_para_siempre\" id=\"OiIR|$?h*fV$l:3`8WcX\" x=\"40\" y=\"180\"><statement name=\"BODY\"><block type=\"blk_si\" id=\"s9q.(=z%JzCtqEZ}Ov$l\"><value name=\"COND\"><block type=\"blk_boton\" id=\",bH*D]BuWV;oH/Y:agA3\"><field name=\"IN\">I1</field></block></value><statement name=\"DO\"><block type=\"blk_melodia\" id=\"zBPU+M9wBM7^1xaD_}2N\"><field name=\"MEL\">birthday</field></block></statement></block></statement></block></xml>"
+}
