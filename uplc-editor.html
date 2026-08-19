@@ -582,15 +582,50 @@ document.querySelectorAll('input[name="boardVersion"]').forEach(r => r.onchange 
 let bridgeWs = null;
 let bridgeConnected = false;
 
+function processBridgeMessage(msg) {
+  if (msg.type === 'boards') {
+    const sel = document.getElementById('portSelect');
+    sel.innerHTML = '<option value="">-- Puerto --</option>';
+    if (msg.boards && msg.boards.length) {
+      msg.boards.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.port;
+        opt.textContent = `${b.port} — ${b.protocolLabel || 'Serial'}`;
+        sel.appendChild(opt);
+      });
+      setStatus(`${msg.boards.length} placa(s) detectada(s)`);
+    } else {
+      setStatus('No se detectaron placas. Conectá una por USB.');
+    }
+  }
+  if (msg.type === 'status') {
+    setStatus(msg.message);
+  }
+  if (msg.type === 'result') {
+    if (msg.success) {
+      setStatus('✅ ¡Upload completado!');
+      alert('¡Sketch subido al Arduino correctamente!');
+    } else {
+      const where = msg.step === 'compile' ? 'COMPILACIÓN' : 'UPLOAD';
+      setStatus(`❌ Error en ${where}`);
+      alert(`Error en ${where}:\n\n${msg.error}`);
+    }
+    document.getElementById('btn-upload').disabled = false;
+    document.getElementById('btn-upload').textContent = '📤 Subir al Arduino';
+  }
+}
 function connectBridge() {
   if (bridgeWs && bridgeWs.readyState === WebSocket.OPEN) {
     bridgeWs.close();
     return;
   }
   setStatus('Conectando al bridge...');
+  let wasOpen = false;
+  let tryingAutoStart = false;
   bridgeWs = new WebSocket('ws://localhost:8765');
 
   bridgeWs.onopen = () => {
+    wasOpen = true;
     bridgeConnected = true;
     document.getElementById('btn-connect').textContent = '🔌 Desconectar';
     document.getElementById('btn-connect').style.background = '#E74C3C';
@@ -599,54 +634,54 @@ function connectBridge() {
     refreshPorts();
   };
 
-  bridgeWs.onmessage = (evt) => {
-    const msg = JSON.parse(evt.data);
-    if (msg.type === 'boards') {
-      const sel = document.getElementById('portSelect');
-      sel.innerHTML = '<option value="">-- Puerto --</option>';
-      if (msg.boards && msg.boards.length) {
-        msg.boards.forEach(b => {
-          const opt = document.createElement('option');
-          opt.value = b.port;
-          opt.dataset.fqbn = b.fqbn;
-          opt.textContent = `${b.port} — ${b.board}`;
-          sel.appendChild(opt);
-        });
-        setStatus(`${msg.boards.length} placa(s) detectada(s)`);
-      } else {
-        setStatus('No se detectaron placas. Conectá una por USB.');
-      }
-    }
-    if (msg.type === 'status') {
-      setStatus(msg.message);
-    }
-    if (msg.type === 'result') {
-      if (msg.success) {
-        setStatus('✅ ¡Upload completado!');
-        alert('¡Sketch subido al Arduino correctamente!');
-      } else {
-        const where = msg.step === 'compile' ? 'COMPILACIÓN' : 'UPLOAD';
-        setStatus(`❌ Error en ${where}`);
-        alert(`Error en ${where}:\n\n${msg.error}`);
-      }
-      document.getElementById('btn-upload').disabled = false;
-      document.getElementById('btn-upload').textContent = '📤 Subir al Arduino';
-    }
-  };
+  bridgeWs.onmessage = (evt) => { processBridgeMessage(JSON.parse(evt.data)); };
 
   bridgeWs.onclose = () => {
-    bridgeConnected = false;
-    document.getElementById('btn-connect').textContent = '🔌 Bridge';
-    document.getElementById('btn-connect').style.background = '#1ABC9C';
-    document.getElementById('btn-upload').disabled = true;
-    document.getElementById('portSelect').innerHTML = '<option value="">-- Puerto --</option>';
-    setStatus('Bridge desconectado');
+    if (wasOpen) {
+      bridgeConnected = false;
+      document.getElementById('btn-connect').textContent = '🔌 Bridge';
+      document.getElementById('btn-connect').style.background = '#1ABC9C';
+      document.getElementById('btn-upload').disabled = true;
+      document.getElementById('portSelect').innerHTML = '<option value="">-- Puerto --</option>';
+      setStatus('Bridge desconectado');
+      return;
+    }
+    if (tryingAutoStart) return;
+    tryingAutoStart = true;
+    setStatus('Bridge no encontrado, intentando iniciar...');
+    try { window.location.href = 'uplc-bridge://start'; } catch(e) {}
+    let retries = 0;
+    const maxRetries = 8;
+    const retryInterval = setInterval(() => {
+      retries++;
+      if (bridgeConnected) { clearInterval(retryInterval); return; }
+      if (retries >= maxRetries) {
+        clearInterval(retryInterval);
+        tryingAutoStart = false;
+        alert('No se pudo iniciar uPLC-Bridge.\n\nEjecutá iniciar.bat manualmente.');
+        return;
+      }
+      setStatus(`Reintentando... (${retries}/${maxRetries})`);
+      try {
+        const test = new WebSocket('ws://localhost:8765');
+        test.onopen = () => {
+          clearInterval(retryInterval);
+          try { test.close(); } catch(e) {}
+          connectBridge();
+        };
+        test.onerror = () => {};
+      } catch(e) {}
+    }, 2000);
   };
 
-  bridgeWs.onerror = () => {
-    alert('No se pudo conectar al uPLC-Bridge.\n\n¿Está corriendo?\nAbrilo desde el Menú Inicio o ejecutá iniciar.bat');
-  };
+  bridgeWs.onerror = () => {};
 }
+
+window.FQBN_MAP = {
+  uno: 'arduino:avr:uno',
+  nano: 'arduino:avr:nano',
+  nano_old: 'arduino:avr:nano:cpu=atmega328old'
+};
 
 function refreshPorts() {
   if (bridgeWs && bridgeWs.readyState === WebSocket.OPEN) {
@@ -665,8 +700,12 @@ function uploadToArduino() {
     alert('Seleccioná un puerto.');
     return;
   }
-  const fqbn = document.getElementById('portSelect').selectedOptions[0]?.dataset.fqbn || 'arduino:avr:uno';
+  const boardKey = document.getElementById('boardSelect').value;
+  const fqbnMap = { uno: 'arduino:avr:uno', nano: 'arduino:avr:nano', nano_old: 'arduino:avr:nano:cpu=atmega328old' };
+  const fqbn = fqbnMap[boardKey] || 'arduino:avr:uno';
   const code = generateSketch();
+
+  console.log('[uPLC] boardKey:', boardKey, 'fqbn:', fqbn, 'port:', port);
 
   document.getElementById('btn-upload').disabled = true;
   document.getElementById('btn-upload').textContent = '⏳ Compilando y subiendo...';
