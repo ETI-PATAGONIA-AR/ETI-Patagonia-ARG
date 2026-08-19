@@ -52,6 +52,9 @@
     .badge-resolved { background: #d4edda; color: #155724; font-size: .65rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
     .empty-state { text-align: center; padding: 3rem 1rem; color: #9aaaba; }
     .empty-state i { font-size: 3rem; display: block; margin-bottom: .8rem; opacity: .4; }
+    .uplc-banner { display: block; width: 100%; border-radius: 12px; margin-bottom: 1.2rem; box-shadow: 0 4px 16px rgba(0,0,0,.1); transition: transform .2s; cursor: pointer; }
+    .uplc-banner:hover { transform: scale(1.01); }
+    @media(max-width:768px) { .uplc-banner { border-radius: 8px; margin-bottom: 1rem; } }
     .page-title { font-weight: 700; color: var(--eti-dark); }
     .fe-wrap { border: 1px solid #d0d8e4; border-radius: 10px; overflow: hidden; background: #fff; margin-bottom: .5rem; }
     .fe-toolbar { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 6px; background: #f5f7fa; border-bottom: 1px solid #e6edf4; }
@@ -183,8 +186,19 @@ function filterSection(section, btn) {
   const isOwner = (c) => currentUser && c.user_id === currentUser.id;
   let filtered = section === 'inicio' ? allContents : allContents.filter(c => c.section === section);
   const grid = document.getElementById('contentGrid');
-  if (!filtered.length) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i>No hay contenido en esta sección.</div>'; return; }
-  grid.innerHTML = `<div class="row g-3">${filtered.map(c => `
+
+  let bannerHtml = '';
+  if (section === 'uplc') {
+    const isMobile = window.innerWidth < 768;
+    const bannerImg = isMobile ? 'img/banner1_480x70.png' : (window.innerWidth < 1024 ? 'img/banner1_728x90.png' : 'img/banner1_1024x90.png');
+    bannerHtml = `<a href="uplc-editor.html" target="_blank"><img src="${bannerImg}" alt="Programar con uPLC-Web" class="uplc-banner" onerror="this.style.display='none'"></a>`;
+  }
+
+  if (!filtered.length && !bannerHtml) { grid.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i>No hay contenido en esta sección.</div>'; return; }
+
+  let cardsHtml = '';
+  if (filtered.length) {
+    cardsHtml = `<div class="row g-3">${filtered.map(c => `
     <div class="col-md-6 col-lg-4">
       <div class="content-card" onclick="navigate('ver?id=${c.id}')">
         <div class="d-flex justify-content-between align-items-start">
@@ -203,6 +217,11 @@ function filterSection(section, btn) {
         ${c.tags ? `<div class="card-tags mt-2">${c.tags.split(',').map(t => `<span class="badge bg-light text-dark me-1">${t.trim()}</span>`).join('')}</div>` : ''}
       </div>
     </div>`).join('')}</div>`;
+  } else if (section === 'uplc') {
+    cardsHtml = '<div class="empty-state"><i class="bi bi-inbox"></i>Aún no hay artículos en esta sección.</div>';
+  }
+
+  grid.innerHTML = bannerHtml + cardsHtml;
 }
 
 // ── VIEWER ──
