@@ -136,7 +136,8 @@ window.handleRegister = async function() {
     setTimeout(showLogin, 2000);
   } else if (user && !user.confirmed_at) {
     err.className = 'alert alert-success alert-msg';
-    showError(err, 'Cuenta creada. Revisá tu email para confirmar (si no llega, revisá spam).');
+    showError(err, 'Cuenta creada. Ya podés iniciar sesión con estos datos.');
+    setTimeout(showLogin, 2000);
   } else {
     err.className = 'alert alert-success alert-msg';
     showError(err, 'Cuenta creada. Ahora iniciá sesión.');

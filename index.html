@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ETI Patagonia — Espacio de Tecnología e Innovación</title>
-  <meta name="description" content="ETI Patagonia — Espacio de Tecnolog a e Innovaci n. Proyectos, aplicaciones, Arduino, recursos docentes y m s.">
+  <meta name="description" content="ETI Patagonia — Espacio de Tecnología e Innovación. Proyectos, aplicaciones, Arduino, recursos docentes y más.">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -168,6 +168,69 @@
       transform: scale(1.04);
     }
 
+    /* ===== SECCIÓN DESTACADOS ===== */
+    .destacado-section {
+      background: #f8f9fc;
+      padding: 3rem 0;
+    }
+    .destacado-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.05);
+      overflow: hidden;
+      border: 1px solid rgba(0,0,0,.04);
+      max-width: 420px;
+    }
+    .destacado-card .card-body {
+      padding: 1.2rem;
+    }
+    .destacado-card h5 {
+      font-weight: 700;
+      color: #0b1a33;
+      font-size: 1rem;
+    }
+    .destacado-card p {
+      font-size: .85rem;
+      color: #5a6a7a;
+    }
+    .video-wrap {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+    }
+    .video-wrap iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .sponsors-section {
+      background: #fff;
+      padding: 2.5rem 0;
+      border-top: 1px solid #e8ecf1;
+    }
+    .sponsors-title {
+      font-weight: 700;
+      color: #0b1a33;
+      margin-bottom: 1.2rem;
+    }
+    .sponsor-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      filter: grayscale(30%);
+      opacity: .75;
+      transition: filter .3s, opacity .3s;
+    }
+    .sponsor-item:hover { filter: grayscale(0%); opacity: 1; }
+    .sponsor-item img { max-height: 50px; max-width: 140px; object-fit: contain; }
+
     /* ===== SECCIÓN REPOS ===== */
     .repos-section {
       background: #fff;
@@ -295,10 +358,10 @@
     </button>
     <div class="collapse navbar-collapse" id="mainNavbar">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--"><i class="bi bi-info-circle me-1"></i>Quiénes Somos</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR"><i class="bi bi-github me-1"></i>Repositorios</a></li>
-        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/Contacto"><i class="bi bi-envelope me-1"></i>Contacto</a></li>
-        <li class="nav-item"><a class="nav-link" href="login.html"><i class="bi bi-person me-1"></i>Ingresar</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--" target="_blank"><i class="bi bi-link me-1"></i>Quiénes Somos</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR" target="_blank"><i class="bi bi-link me-1"></i>Repositorios</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://github.com/ETI-PATAGONIA-AR/Contacto" target="_blank"><i class="bi bi-link me-1"></i>Contacto</a></li>
+        <li class="nav-item"><a class="nav-link" href="https://eti-patagonia-ar.github.io/ETI-Patagonia-ARG/login.html" target="_blank"><i class="bi bi-link me-1"></i>Ingresar</a></li>
       </ul>
     </div>
   </div>
@@ -323,13 +386,13 @@
           <img src="img/ETI_Patagonia.png" alt="ETI Patagonia">
         </div>
         <div class="uplc-promo">
-          <img src="img/e_book_uPLC.png" alt="uPLC">
+          <img src="img/e_book_uPLC.png" alt="¿Ya conociste uPLC?">
           <h5>¿Ya conociste uPLC?</h5>
           <p>Si eres docente, estudiante, aficionado o profesional y quieres enseñar robótica educativa en el aula, programar tus Arduino en lenguaje visual de BLOQUES o lenguaje industrial de los PLC (LADDER), uPLC es lo que necesitas…</p>
           <span class="contacto"><i class="bi bi-envelope me-1"></i>contacto: prof.martintorres@educ.ar</span>
           <span class="descuento">— Descuentos especiales a Docentes, Escuelas e Instituciones Privadas —</span>
           <div class="mt-3">
-            <iframe src="https://www.youtube.com/embed/qlkqkO9H0I4?feature=oembed" width="100%" height="240" style="border-radius:12px;display:block;border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen title="Presentacion uPLCv6 Blocks"></iframe>
+            <iframe src="qlkqkO9H0I4.html" width="100%" height="240" style="border-radius:12px;display:block;border:none;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen="" title="Presentacion uPLCv6 Blocks"></iframe>
           </div>
         </div>
       </div>
@@ -337,80 +400,147 @@
       <!-- Columna derecha: iconos botones -->
       <div class="col-lg-7">
         <div class="row g-3">
-
-          <!-- APLICACIONES -->
           <div class="col-md-6">
             <div class="icon-btn-card">
               <div class="icon-wrap">
                 <img src="img/icono_aplicaciones.png" alt="Aplicaciones">
               </div>
               <h5>Aplicaciones</h5>
-              <p>Interfaces, asistentes y ejecutables. Software de escritorio y herramientas interactivas.</p>
+              <p>Nuestro repositorio en Github de Interfaces, asistentes y ejecutables. Software de escritorio y herramientas interactivas. Para ver mas, entra a nuestra plataforma</p>
               <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Aaplicaciones&type=source&language=&sort=" class="btn-icon-link" target="_blank">
                 <i class="bi bi-box-arrow-up-right"></i> Explorar
               </a>
             </div>
           </div>
-
-          <!-- PROYECTOS -->
           <div class="col-md-6">
             <div class="icon-btn-card">
               <div class="icon-wrap">
                 <img src="img/icono_proyectos.png" alt="Proyectos">
               </div>
               <h5>Proyectos</h5>
-              <p>Software, IA y nanotecnología aplicada. Desarrollos e investigación técnica. Innovación abierta.</p>
+              <p>Nuestro repositorio en Github de Software, IA y nanotecnología aplicada. Desarrollos e investigación técnica. Innovación abierta. Para ver mas, entra a nuestra plataforma</p>
               <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Aproyectos&type=source&language=&sort=" class="btn-icon-link" target="_blank">
                 <i class="bi bi-box-arrow-up-right"></i> Explorar
               </a>
             </div>
           </div>
-
-          <!-- ARDUINO -->
           <div class="col-md-6">
             <div class="icon-btn-card">
               <div class="icon-wrap">
                 <img src="img/icono_arduino.png" alt="Arduino">
               </div>
               <h5>Arduino</h5>
-              <p>Firmware, automatización y esquemáticos. Microcontroladores y electrónica libre. Automatización.</p>
+              <p>Nuestro repositorio en Github de Firmware, automatización y esquemáticos. Microcontroladores y electrónica libre. Automatización. Para ver mas, entra a nuestra plataforma</p>
               <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Aarduino&type=&language=&sort=" class="btn-icon-link" target="_blank">
                 <i class="bi bi-box-arrow-up-right"></i> Explorar
               </a>
             </div>
           </div>
-
-          <!-- DOCENTES -->
           <div class="col-md-6">
             <div class="icon-btn-card">
               <div class="icon-wrap">
                 <img src="img/icono_docentes.png" alt="Docentes">
               </div>
               <h5>Docentes</h5>
-              <p>Recursos, herramientas y didáctica. Contenido para educación técnica. Guías y utilidades educativas.</p>
+              <p>Nuestro repositorio en Github de Recursos, herramientas y didáctica. Contenido para educación técnica. Guías y utilidades educativas. Para ver mas, entra a nuestra plataforma</p>
               <a href="https://github.com/ETI-PATAGONIA-AR?tab=repositories&q=topic%3Adocentes&type=source&language=&sort=" class="btn-icon-link" target="_blank">
                 <i class="bi bi-box-arrow-up-right"></i> Explorar
               </a>
             </div>
           </div>
-
-          <!-- uPLC -->
           <div class="col-md-6">
             <div class="icon-btn-card">
               <div class="icon-wrap">
                 <img src="img/icono_uplc.png" alt="uPLC">
               </div>
               <h5>uPLC</h5>
-              <p>Conversor Ladder/Bloques a C++. Programación visual en Arduino. Automatización y control industrial.</p>
+              <p>Nuestro repositorio en Github del Conversor Ladder/Bloques a C++. Programación visual en Arduino. Automatización y control industrial. Para ver mas, entra a nuestra plataforma</p>
               <a href="https://github.com/ETI-PATAGONIA-AR/uPLC" class="btn-icon-link" target="_blank">
                 <i class="bi bi-box-arrow-up-right"></i> Explorar
               </a>
             </div>
           </div>
-
+          <div class="col-md-6">
+            <div class="icon-btn-card">
+              <div class="icon-wrap">
+                <img src="img/icono_plataforma.png" alt="Plataforma ETI">
+              </div>
+              <h5>Plataforma ETI</h5>
+              <p>Ingresá a la plataforma para acceder a cursos, proyectos y contenido exclusivo.</p>
+              <a href="https://eti-patagonia-ar.github.io/ETI-Patagonia-ARG/login.html" class="btn-icon-link" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Ingresar
+              </a>
+            </div>
+          </div>
         </div>
       </div>
 
+    </div>
+  </div>
+</section>
+<!-- CONTENIDO DESTACADO -->
+<section class="destacado-section">
+  <div class="container">
+    <h2 class="fs-5 fw-bold text-dark mb-3"><i class="bi bi-megaphone me-2"></i>Destacados</h2>
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div class="destacado-card">
+          <div class="card-body">
+            <div class="video-wrap">
+              <iframe src="https://www.youtube.com/embed/PuQcOBgy8V0" title="Conoce la Plataforma de ETI Patagonia" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+            <h5>Conoce la Plataforma de ETI Patagonia</h5>
+            <p>Olvídate de dar vueltas por internet: acá fusionamos la robótica educativa, la electrónica práctica y la programación de Arduino en una sola plataforma interactiva... ¡El conocimiento tecnológico nunca fue tan accesible! 📌 ¿Qué vas a encontrar en esta actualización? - Docentes: Recursos listos para tus clases y herramientas para enseñar robótica sin frustraciones. - Estudiantes: Guías dinámicas para aprobar tus proyectos y potenciar tu lógica de programación. - Entusiastas y Aficionados: El espacio ideal para experimentar con electrónica, sensores y Arduino desde cero. 🔗 ¡Explora la nueva plataforma ahora mismo!</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="destacado-card">
+          <div class="card-body">
+            <div class="video-wrap">
+              <iframe src="https://www.youtube.com/embed/iiziI1K9s3U" title="Robot RC Multifunción | Control Bluetooth, Cámara, Modo Soccer y Modo Laberinto" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+            <h5>Robot RC Multifunción | Control Bluetooth, Cámara, Modo Soccer y Modo Laberinto</h5>
+            <p>🤖 ¡Presentamos el nuevo Robot RC Multifunción de ETI Patagonia! Un proyecto pensado para ir mucho más allá de un simple robot a control remoto. Este robot reúne en una misma plataforma diferentes tecnologías de robótica, electrónica y programación, permitiendo utilizarlo en modo RC, con control de velocidad, con cámara y también como robot autónomo para resolver laberintos o implementarlo en torneos de Sumo, miniSumo o SoccerRC. En esta ultima actualizacion, sumamos aplicación de control para Android y Window´s</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- SPONSORS -->
+<section class="sponsors-section">
+  <div class="container text-center">
+    <h3 class="sponsors-title fs-6"><i class="bi bi-award me-2"></i>Aliados y Patrocinadores</h3>
+    <div class="row align-items-center justify-content-center g-4">
+      <div class="col-6 col-md-3 col-lg-2">
+        <div class="sponsor-item">
+          <a href="prof.martintorres@educ.ar" target="_blank" title="TORRES O&S">
+            <img src="img/TORRES_LOGO.png" alt="TORRES O&S">
+          </a>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <div class="sponsor-item">
+          <a href="https://www.electronica-2000.com/" target="_blank" title="Electronica2000">
+            <img src="img/electronica2000.png" alt="Electronica2000">
+          </a>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <div class="sponsor-item">
+          <a href="https://www.facebook.com/IvanElectric90/" target="_blank" title="IvanELECTRIC">
+            <img src="img/ivan_ELECTRIC.png" alt="IvanELECTRIC">
+          </a>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 col-lg-2">
+        <div class="sponsor-item">
+          <a href="#" target="_blank" title="Sponsor">
+            <img src="" alt="Sponsor">
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -443,9 +573,7 @@
   <div class="container">
     <img src="img/prof_martintorres.png" alt="Prof. Martin Torres" class="footer-logo mb-2">
     <p class="mb-1">
-      <a href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--">Quiénes Somos</a> ·
-      <a href="https://github.com/ETI-PATAGONIA-AR">Repositorios</a> ·
-      <a href="https://github.com/ETI-PATAGONIA-AR/Contacto">Contacto</a>
+      <a href="https://github.com/ETI-PATAGONIA-AR/ETI-Patagonia---Quienes-SOMOS--" target="_blank">Quiénes Somos</a> · <a href="https://github.com/ETI-PATAGONIA-AR" target="_blank">Repositorios</a> · <a href="https://github.com/ETI-PATAGONIA-AR/Contacto" target="_blank">Contacto</a>
     </p>
     <p class="mb-0 small opacity-50">ETI Patagonia — Espacio de Tecnología e Innovación</p>
   </div>
